@@ -1,0 +1,1879 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phantom Ledger — Demo Wallet</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg: #0B0E13;
+    --bg-raised: #11151D;
+    --bg-card: #141925;
+    --line: #232A38;
+    --line-soft: #1A2029;
+    --text: #EDEFF3;
+    --text-dim: #8A93A6;
+    --text-faint: #525B6E;
+    --purple: #9945FF;
+    --green: #14F195;
+    --amber: #FFB454;
+    --red: #FF5C72;
+    --purple-glow: rgba(153, 69, 255, 0.18);
+    --green-glow: rgba(20, 241, 149, 0.18);
+  }
+
+  *{ box-sizing: border-box; margin:0; padding:0; }
+  html, body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  body{
+    padding: 28px 16px 60px;
+    display:flex;
+    justify-content:center;
+  }
+  .mono{ font-family: 'JetBrains Mono', monospace; }
+  .hidden{ display:none !important; }
+
+  .app{
+    width:100%;
+    max-width: 460px;
+  }
+  .app.wide{ max-width: 640px; }
+
+  /* ================= AUTH SCREEN ================= */
+  .auth-wrap{
+    width:100%;
+    max-width: 380px;
+    margin: 6vh auto 0;
+  }
+  .auth-brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    justify-content:center;
+    margin-bottom: 30px;
+  }
+  .auth-card{
+    background: var(--bg-card);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:28px 24px;
+  }
+  .auth-tabs{
+    display:flex;
+    gap:4px;
+    background: var(--bg-raised);
+    border:1px solid var(--line);
+    border-radius:11px;
+    padding:4px;
+    margin-bottom:22px;
+  }
+  .auth-tab{
+    flex:1;
+    text-align:center;
+    font-size:13px;
+    font-weight:600;
+    padding:9px;
+    border-radius:8px;
+    cursor:pointer;
+    color: var(--text-dim);
+    transition: all .15s ease;
+  }
+  .auth-tab.active{ background: var(--bg-card); color: var(--text); }
+  .auth-title{
+    font-size:18px;
+    font-weight:700;
+    margin-bottom:4px;
+  }
+  .auth-sub{
+    font-size:12.5px;
+    color: var(--text-dim);
+    margin-bottom:20px;
+    line-height:1.5;
+  }
+  .auth-error{
+    font-size:12px;
+    color: var(--red);
+    background: rgba(255,92,114,0.08);
+    border:1px solid rgba(255,92,114,0.25);
+    padding:9px 12px;
+    border-radius:10px;
+    margin-bottom:14px;
+    display:none;
+    font-family:'JetBrains Mono', monospace;
+  }
+  .auth-error.show{ display:block; }
+  .auth-hint{
+    margin-top:16px;
+    font-size:11px;
+    color: var(--text-faint);
+    font-family:'JetBrains Mono', monospace;
+    text-align:center;
+    line-height:1.7;
+  }
+  .auth-hint b{ color: var(--text-dim); }
+
+  .wipe-link{
+    display:block;
+    text-align:center;
+    margin-top:18px;
+    font-size:11px;
+    color: var(--text-faint);
+    font-family:'JetBrains Mono', monospace;
+    cursor:pointer;
+  }
+  .wipe-link:hover{ color: var(--red); }
+
+  /* ================= Shared component styles ================= */
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom: 22px;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .brand-mark{
+    width:30px; height:30px;
+    border-radius:9px;
+    background: linear-gradient(135deg, var(--purple), var(--green));
+    position:relative;
+    flex-shrink:0;
+  }
+  .brand-mark::before{
+    content:"";
+    position:absolute; inset:6px;
+    background: var(--bg);
+    border-radius:5px;
+  }
+  .brand-mark.admin{
+    background: linear-gradient(135deg, var(--amber), var(--red));
+  }
+  .brand-name{
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:-0.01em;
+  }
+  .topbar-right{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .net-pill{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    color: var(--text-dim);
+    background: var(--bg-raised);
+    border:1px solid var(--line);
+    padding:5px 10px;
+    border-radius:100px;
+  }
+  .dot-live{
+    width:6px; height:6px; border-radius:50%;
+    background: var(--green);
+    box-shadow: 0 0 0 0 var(--green-glow);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse{
+    0%{ box-shadow: 0 0 0 0 rgba(20,241,149,0.5); }
+    70%{ box-shadow: 0 0 0 6px rgba(20,241,149,0); }
+    100%{ box-shadow: 0 0 0 0 rgba(20,241,149,0); }
+  }
+  .admin-pill{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    color: var(--amber);
+    background: rgba(255,180,84,0.1);
+    border:1px solid rgba(255,180,84,0.3);
+    padding:5px 10px;
+    border-radius:100px;
+  }
+  .logout-btn{
+    width:30px; height:30px;
+    border-radius:9px;
+    background: var(--bg-raised);
+    border:1px solid var(--line);
+    color: var(--text-dim);
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px;
+    transition: all .15s ease;
+  }
+  .logout-btn:hover{ border-color: var(--red); color: var(--red); }
+
+  .user-chip{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+  }
+  .user-chip b{ color: var(--text); }
+
+  /* ---------- Balance card ---------- */
+  .balance-card{
+    background:
+      radial-gradient(120% 140% at 100% 0%, var(--purple-glow), transparent 55%),
+      radial-gradient(120% 140% at 0% 100%, var(--green-glow), transparent 55%),
+      var(--bg-card);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:24px 22px 18px;
+    margin-bottom:14px;
+    position:relative;
+    overflow:hidden;
+  }
+  .balance-label{
+    font-size:12px;
+    color: var(--text-dim);
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    margin-bottom:8px;
+  }
+  .balance-main{
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+    margin-bottom:4px;
+  }
+  .balance-sol{
+    font-size:38px;
+    font-weight:700;
+    letter-spacing:-0.02em;
+    font-family:'JetBrains Mono', monospace;
+  }
+  .balance-unit{
+    font-size:16px;
+    color: var(--text-dim);
+    font-weight:500;
+  }
+  .balance-usd{
+    font-size:13px;
+    color: var(--text-dim);
+    margin-bottom:16px;
+    font-family:'JetBrains Mono', monospace;
+  }
+  .change-up{ color: var(--green); }
+  .change-down{ color: var(--red); }
+
+  .sparkline-wrap{
+    height:54px;
+    margin: 4px 0 14px;
+  }
+  .sparkline-wrap svg{ width:100%; height:100%; display:block; }
+  .spark-path{
+    fill:none;
+    stroke: var(--green);
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    stroke-dasharray: 600;
+    stroke-dashoffset: 600;
+    animation: draw 1.6s cubic-bezier(.2,.8,.2,1) forwards;
+  }
+  @keyframes draw{ to{ stroke-dashoffset:0; } }
+  .spark-fill{ opacity:0; animation: fadein 1s ease forwards 0.9s; }
+  @keyframes fadein{ to{ opacity:1; } }
+
+  .addr-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-top:1px solid var(--line-soft);
+    padding-top:14px;
+  }
+  .addr-text{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    color: var(--text-dim);
+    letter-spacing:0.01em;
+  }
+  .copy-btn{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    color: var(--text);
+    background: var(--bg-raised);
+    border:1px solid var(--line);
+    padding:6px 10px;
+    border-radius:7px;
+    cursor:pointer;
+    transition: all .15s ease;
+    display:flex;
+    align-items:center;
+    gap:5px;
+  }
+  .copy-btn:hover{ border-color: var(--purple); color: var(--purple); }
+  .copy-btn.copied{ border-color: var(--green); color: var(--green); }
+
+  /* ---------- Action buttons ---------- */
+  .actions{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:8px;
+    margin-bottom:22px;
+  }
+  .action-btn{
+    background: var(--bg-card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:13px 6px 10px;
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:7px;
+    transition: all .15s ease;
+    color: var(--text);
+    font-family:'Space Grotesk', sans-serif;
+  }
+  .action-btn:hover{ border-color: var(--purple); transform: translateY(-1px); }
+  .action-btn:active{ transform: translateY(0); }
+  .action-icon{
+    width:30px; height:30px;
+    border-radius:9px;
+    display:flex; align-items:center; justify-content:center;
+    background: var(--bg-raised);
+  }
+  .action-label{ font-size:11px; color: var(--text-dim); font-weight:500; }
+
+  /* ---------- Section header ---------- */
+  .section-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:10px;
+    margin-top:24px;
+  }
+  .section-title{
+    font-size:13px;
+    font-weight:600;
+    color: var(--text-dim);
+    text-transform:uppercase;
+    letter-spacing:0.07em;
+  }
+  .tabs{
+    display:flex;
+    gap:4px;
+    background: var(--bg-raised);
+    border:1px solid var(--line);
+    border-radius:9px;
+    padding:3px;
+  }
+  .tab{
+    font-size:11.5px;
+    font-family:'JetBrains Mono', monospace;
+    padding:5px 10px;
+    border-radius:6px;
+    cursor:pointer;
+    color: var(--text-dim);
+    transition: all .15s ease;
+  }
+  .tab.active{ background: var(--bg-card); color: var(--text); }
+
+  /* ---------- Token list ---------- */
+  .token-list{ display:flex; flex-direction:column; gap:8px; }
+  .token-row{
+    background: var(--bg-card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px 14px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    cursor:pointer;
+    transition: border-color .15s ease;
+  }
+  .token-row:hover{ border-color: #2C3445; }
+  .token-icon{
+    width:38px; height:38px;
+    border-radius:50%;
+    flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700;
+    font-size:13px;
+    font-family:'JetBrains Mono', monospace;
+  }
+  .token-info{ flex:1; min-width:0; }
+  .token-name{ font-size:14px; font-weight:600; margin-bottom:2px; }
+  .token-sub{ font-size:12px; color: var(--text-faint); font-family:'JetBrains Mono', monospace; }
+  .token-amounts{ text-align:right; }
+  .token-value{ font-size:14px; font-weight:600; font-family:'JetBrains Mono', monospace; }
+  .token-change{ font-size:11.5px; font-family:'JetBrains Mono', monospace; margin-top:2px; }
+  .up{ color: var(--green); }
+  .down{ color: var(--red); }
+
+  /* ---------- Activity list ---------- */
+  .tx-list{ display:flex; flex-direction:column; gap:8px; }
+  .tx-row{
+    background: var(--bg-card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px 14px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .tx-row.pending{
+    border-color: rgba(255,180,84,0.35);
+    background: linear-gradient(90deg, rgba(255,180,84,0.05), rgba(20,21,29,1) 40%);
+  }
+  .tx-icon{
+    width:34px; height:34px;
+    border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .tx-icon.recv{ background: var(--green-glow); color: var(--green); }
+  .tx-icon.send{ background: rgba(255,92,114,0.14); color: var(--red); }
+  .tx-icon.swap{ background: var(--purple-glow); color: var(--purple); }
+  .tx-icon.pending-icon{ background: rgba(255,180,84,0.14); color: var(--amber); }
+  .tx-icon.admin{ background: rgba(255,180,84,0.14); color: var(--amber); }
+  .tx-info{ flex:1; min-width:0; }
+  .tx-title{ font-size:13.5px; font-weight:600; }
+  .tx-sub{ font-size:11.5px; color: var(--text-faint); font-family:'JetBrains Mono', monospace; margin-top:2px; }
+  .tx-amounts{ text-align:right; flex-shrink:0; }
+  .tx-amt{ font-size:13.5px; font-weight:600; font-family:'JetBrains Mono', monospace; }
+  .tx-time{ font-size:11px; color: var(--text-faint); margin-top:2px; }
+
+  .spinner-ring{
+    width:16px; height:16px;
+    border-radius:50%;
+    border:2px solid rgba(255,180,84,0.25);
+    border-top-color: var(--amber);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+  .status-chip{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    font-size:10.5px;
+    font-family:'JetBrains Mono', monospace;
+    padding:2px 7px;
+    border-radius:100px;
+    margin-top:3px;
+  }
+  .status-chip.pend{
+    background: rgba(255,180,84,0.12);
+    color: var(--amber);
+    border:1px solid rgba(255,180,84,0.3);
+  }
+  .status-chip.conf{
+    background: rgba(20,241,149,0.1);
+    color: var(--green);
+    border:1px solid rgba(20,241,149,0.25);
+  }
+  .status-dot-pend{
+    width:5px; height:5px; border-radius:50%;
+    background: var(--amber);
+    animation: pulse 1.1s infinite;
+  }
+
+  .empty-tx{
+    text-align:center;
+    padding:30px 10px;
+    color: var(--text-faint);
+    font-size:12.5px;
+    font-family:'JetBrains Mono', monospace;
+  }
+
+  .clear-history-btn{
+    width:100%;
+    margin-top:10px;
+    background: rgba(255,92,114,0.06);
+    border:1px dashed rgba(255,92,114,0.3);
+    color: var(--red);
+    font-family:'JetBrains Mono', monospace;
+    font-size:11.5px;
+    padding:9px;
+    border-radius:10px;
+    cursor:pointer;
+    transition: all .15s ease;
+  }
+  .clear-history-btn:hover{
+    background: rgba(255,92,114,0.12);
+    border-color: rgba(255,92,114,0.5);
+  }
+
+  /* ================= Modals ================= */
+  .overlay{
+    position:fixed; inset:0;
+    background: rgba(5,7,10,0.7);
+    backdrop-filter: blur(3px);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:50;
+    padding:0;
+  }
+  .overlay.show{ display:flex; }
+  @media (min-width:520px){
+    .overlay{ align-items:center; padding:20px; }
+  }
+  .modal{
+    background: var(--bg-raised);
+    border:1px solid var(--line);
+    border-radius:20px 20px 0 0;
+    width:100%;
+    max-width:460px;
+    padding:20px 20px 26px;
+    animation: slideUp .25s ease;
+    max-height: 88vh;
+    overflow-y:auto;
+  }
+  @media (min-width:520px){
+    .modal{ border-radius:20px; }
+  }
+  @keyframes slideUp{
+    from{ transform: translateY(30px); opacity:0; }
+    to{ transform: translateY(0); opacity:1; }
+  }
+  .modal-head{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:18px;
+  }
+  .modal-title{ font-size:16px; font-weight:700; }
+  .modal-close{
+    width:28px; height:28px;
+    border-radius:50%;
+    background: var(--bg-card);
+    border:1px solid var(--line);
+    color: var(--text-dim);
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px;
+  }
+  .field-label{
+    font-size:11.5px;
+    color: var(--text-dim);
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    margin-bottom:7px;
+    display:block;
+  }
+  .field-help{
+    font-size:11px;
+    color: var(--text-faint);
+    font-family:'JetBrains Mono', monospace;
+    margin-top:-10px;
+    margin-bottom:16px;
+    line-height:1.5;
+  }
+  .field{
+    width:100%;
+    background: var(--bg-card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:13px 14px;
+    color: var(--text);
+    font-family:'JetBrains Mono', monospace;
+    font-size:13.5px;
+    margin-bottom:16px;
+    outline:none;
+    transition: border-color .15s ease;
+  }
+  .field:focus{ border-color: var(--purple); }
+  .field::placeholder{ color: var(--text-faint); }
+  select.field{ -webkit-appearance:none; appearance:none; cursor:pointer; }
+
+  .max-row{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:-10px; margin-bottom:16px;
+  }
+  .max-btn{
+    font-size:11px; color: var(--purple);
+    font-family:'JetBrains Mono', monospace;
+    cursor:pointer;
+    background:none; border:none;
+  }
+  .avail-text{ font-size:11px; color: var(--text-faint); font-family:'JetBrains Mono', monospace; }
+
+  .primary-btn{
+    width:100%;
+    background: linear-gradient(135deg, var(--purple), #7C3AED);
+    color:#fff;
+    border:none;
+    border-radius:13px;
+    padding:14px;
+    font-size:14px;
+    font-weight:600;
+    font-family:'Space Grotesk', sans-serif;
+    cursor:pointer;
+    transition: filter .15s ease;
+  }
+  .primary-btn:hover{ filter: brightness(1.08); }
+  .primary-btn:disabled{ opacity:0.4; cursor:not-allowed; filter:none; }
+
+  .primary-btn.amber{ background: linear-gradient(135deg, var(--amber), #E08A2E); }
+  .primary-btn.danger{ background: linear-gradient(135deg, var(--red), #C23B52); }
+
+  .qr-box{
+    width:180px; height:180px;
+    margin: 4px auto 18px;
+    background: #fff;
+    border-radius:14px;
+    display:flex; align-items:center; justify-content:center;
+    padding:10px;
+  }
+  .receive-addr{
+    background: var(--bg-card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:13px 14px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    word-break:break-all;
+    color: var(--text-dim);
+    margin-bottom:14px;
+    text-align:center;
+    line-height:1.6;
+  }
+
+  .swap-arrow{
+    display:flex; justify-content:center; margin: -8px 0 8px;
+  }
+  .swap-arrow-btn{
+    width:32px; height:32px;
+    border-radius:10px;
+    background: var(--bg-card);
+    border:1px solid var(--line);
+    color: var(--purple);
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  .toast{
+    position:fixed;
+    bottom:24px; left:50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--bg-raised);
+    border:1px solid var(--green);
+    color: var(--text);
+    padding:12px 18px;
+    border-radius:12px;
+    font-size:13px;
+    font-family:'JetBrains Mono', monospace;
+    display:flex; align-items:center; gap:8px;
+    opacity:0;
+    pointer-events:none;
+    transition: all .25s ease;
+    z-index:100;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    white-space:nowrap;
+  }
+  .toast.show{
+    opacity:1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ---------- Sending overlay ---------- */
+  .sending-overlay{
+    position:fixed; inset:0;
+    background: rgba(5,7,10,0.85);
+    backdrop-filter: blur(4px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:80;
+  }
+  .sending-overlay.show{ display:flex; }
+  .sending-box{
+    background: var(--bg-raised);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:34px 30px;
+    width:100%;
+    max-width:340px;
+    text-align:center;
+  }
+  .sending-ring{
+    width:56px; height:56px;
+    border-radius:50%;
+    border:3px solid rgba(153,69,255,0.18);
+    border-top-color: var(--purple);
+    margin: 0 auto 20px;
+    animation: spin 0.9s linear infinite;
+  }
+  .sending-ring.done{
+    animation:none;
+    border-color: var(--green);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:24px;
+    color: var(--green);
+  }
+  .sending-title{ font-size:15px; font-weight:700; margin-bottom:6px; }
+  .sending-sub{
+    font-size:12px; color: var(--text-dim);
+    font-family:'JetBrains Mono', monospace;
+    margin-bottom:18px; line-height:1.6;
+  }
+  .sending-steps{ text-align:left; display:flex; flex-direction:column; gap:10px; }
+  .sending-step{
+    display:flex; align-items:center; gap:10px;
+    font-size:12px; font-family:'JetBrains Mono', monospace;
+    color: var(--text-faint);
+    transition: color .2s ease;
+  }
+  .sending-step.active{ color: var(--text); }
+  .sending-step.done{ color: var(--green); }
+  .step-marker{
+    width:16px; height:16px; border-radius:50%;
+    border:1.5px solid var(--line);
+    flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:9px;
+  }
+  .sending-step.active .step-marker{ border-color: var(--purple); }
+  .sending-step.done .step-marker{ border-color: var(--green); background: rgba(20,241,149,0.12); }
+
+  /* ================= ADMIN VIEW ================= */
+  .admin-stats{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:10px;
+    margin-bottom:20px;
+  }
+  .admin-stat{
+    background: var(--bg-card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:14px 12px;
+  }
+  .admin-stat-label{
+    font-size:10.5px;
+    color: var(--text-faint);
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    margin-bottom:6px;
+  }
+  .admin-stat-value{
+    font-size:18px;
+    font-weight:700;
+    font-family:'JetBrains Mono', monospace;
+  }
+
+  .user-card{
+    background: var(--bg-card);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:16px;
+    margin-bottom:10px;
+  }
+  .user-card-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:12px;
+  }
+  .user-card-id{ display:flex; align-items:center; gap:10px; }
+  .user-avatar{
+    width:36px; height:36px;
+    border-radius:50%;
+    background: linear-gradient(135deg, var(--purple), var(--green));
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700;
+    font-size:14px;
+    color: #0B0E13;
+    flex-shrink:0;
+  }
+  .user-card-name{ font-size:14px; font-weight:700; }
+  .user-card-addr{ font-size:11px; color: var(--text-faint); font-family:'JetBrains Mono', monospace; margin-top:1px; }
+  .role-badge{
+    font-size:10px;
+    font-family:'JetBrains Mono', monospace;
+    padding:3px 8px;
+    border-radius:100px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+  }
+  .role-badge.admin{ background: rgba(255,180,84,0.12); color: var(--amber); border:1px solid rgba(255,180,84,0.3); }
+  .role-badge.user{ background: rgba(153,69,255,0.1); color: var(--purple); border:1px solid rgba(153,69,255,0.25); }
+
+  .user-card-balance{
+    font-size:22px;
+    font-weight:700;
+    font-family:'JetBrains Mono', monospace;
+    margin-bottom:14px;
+  }
+  .user-card-balance span{ font-size:13px; color: var(--text-dim); font-weight:500; margin-left:4px; }
+
+  .user-card-actions{
+    display:grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap:7px;
+  }
+  .mini-btn{
+    background: var(--bg-raised);
+    border:1px solid var(--line);
+    color: var(--text);
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    padding:9px 4px;
+    border-radius:9px;
+    cursor:pointer;
+    text-align:center;
+    transition: all .15s ease;
+  }
+  .mini-btn:hover{ border-color: var(--purple); }
+  .mini-btn.danger:hover{ border-color: var(--red); color: var(--red); }
+  .mini-btn.amber:hover{ border-color: var(--amber); color: var(--amber); }
+
+  .admin-empty{
+    text-align:center;
+    padding:40px 20px;
+    color: var(--text-faint);
+    font-size:12.5px;
+    font-family:'JetBrains Mono', monospace;
+    line-height:1.7;
+  }
+
+  .danger-zone{
+    margin-top:28px;
+    border:1px dashed rgba(255,92,114,0.3);
+    border-radius:16px;
+    padding:16px;
+  }
+  .danger-zone-title{
+    font-size:12px;
+    font-weight:700;
+    color: var(--red);
+    margin-bottom:4px;
+  }
+  .danger-zone-sub{
+    font-size:11.5px;
+    color: var(--text-faint);
+    margin-bottom:14px;
+    line-height:1.5;
+  }
+
+  ::-webkit-scrollbar{ width:8px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+  ::-webkit-scrollbar-thumb{ background: var(--line); border-radius:4px; }
+</style>
+</head>
+<body>
+
+<!-- ============ AUTH SCREEN ============ -->
+<div class="auth-wrap" id="authScreen">
+  <div class="auth-brand">
+    <div class="brand-mark"></div>
+    <div class="brand-name" style="font-size:17px;">Phantom Ledger</div>
+  </div>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="loginTab" onclick="switchAuthTab('login')">Iniciar sesión</div>
+      <div class="auth-tab" id="registerTab" onclick="switchAuthTab('register')">Crear cuenta</div>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="loginForm">
+      <div class="auth-title">Bienvenido de nuevo</div>
+      <div class="auth-sub">Ingresá con tu usuario y contraseña de la demo.</div>
+      <div class="auth-error" id="loginError"></div>
+      <label class="field-label">Usuario</label>
+      <input class="field" id="loginUser" placeholder="tu_usuario" autocomplete="username">
+      <label class="field-label">Contraseña</label>
+      <input class="field" id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password">
+      <button class="primary-btn" onclick="doLogin()">Iniciar sesión</button>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="registerForm" class="hidden">
+      <div class="auth-title">Crear cuenta nueva</div>
+      <div class="auth-sub">Se genera una wallet de demo automáticamente para vos.</div>
+      <div class="auth-error" id="registerError"></div>
+      <label class="field-label">Usuario</label>
+      <input class="field" id="regUser" placeholder="elegí un usuario" autocomplete="username">
+      <label class="field-label">Contraseña</label>
+      <input class="field" id="regPass" type="password" placeholder="mínimo 4 caracteres" autocomplete="new-password">
+      <button class="primary-btn" onclick="doRegister()">Crear cuenta</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ USER VIEW ============ -->
+<div class="app hidden" id="userApp">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div class="brand-name">Phantom Ledger</div>
+    </div>
+    <div class="topbar-right">
+      <div class="net-pill"><span class="dot-live"></span> Devnet</div>
+      <button class="logout-btn" onclick="logout()" title="Cerrar sesión">⏻</button>
+    </div>
+  </div>
+
+  <div class="user-chip">Sesión: <b id="userChipName"></b></div>
+
+  <!-- Balance Card -->
+  <div class="balance-card">
+    <div class="balance-label">Balance total</div>
+    <div class="balance-main">
+      <span class="balance-sol" id="balanceSol">0.0000</span>
+      <span class="balance-unit">SOL</span>
+    </div>
+    <div class="balance-usd"><span id="balanceUsd">$0.00</span> · <span class="change-up">+3.8% hoy</span></div>
+
+    <div class="sparkline-wrap">
+      <svg viewBox="0 0 300 60" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#14F195" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#14F195" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <polygon class="spark-fill" fill="url(#sparkGrad)" points="0,60 0,42 25,38 50,30 75,33 100,24 125,28 150,18 175,22 200,14 225,17 250,10 275,12 300,6 300,60"/>
+        <polyline class="spark-path" points="0,42 25,38 50,30 75,33 100,24 125,28 150,18 175,22 200,14 225,17 250,10 275,12 300,6"/>
+      </svg>
+    </div>
+
+    <div class="addr-row">
+      <span class="addr-text" id="walletAddrShort">—</span>
+      <button class="copy-btn" id="copyAddrBtn" onclick="copyAddress()">
+        <span id="copyIcon">⧉</span> <span id="copyLabel">Copiar</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="action-btn" onclick="openModal('sendModal')">
+      <div class="action-icon">↑</div>
+      <div class="action-label">Enviar</div>
+    </button>
+    <button class="action-btn" onclick="openModal('receiveModal')">
+      <div class="action-icon">↓</div>
+      <div class="action-label">Recibir</div>
+    </button>
+    <button class="action-btn" onclick="openModal('swapModal')">
+      <div class="action-icon">⇄</div>
+      <div class="action-label">Swap</div>
+    </button>
+  </div>
+
+  <!-- Tokens -->
+  <div class="section-head"><div class="section-title">Tokens</div></div>
+  <div class="token-list" id="tokenList"></div>
+
+  <!-- Activity -->
+  <div class="section-head">
+    <div class="section-title">Actividad</div>
+    <div class="tabs">
+      <div class="tab active" data-filter="all" onclick="setFilter('all')">Todo</div>
+      <div class="tab" data-filter="recv" onclick="setFilter('recv')">Recibido</div>
+      <div class="tab" data-filter="send" onclick="setFilter('send')">Enviado</div>
+    </div>
+  </div>
+  <div class="tx-list" id="txList"></div>
+</div>
+
+<!-- ============ ADMIN VIEW ============ -->
+<div class="app wide hidden" id="adminApp">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark admin"></div>
+      <div class="brand-name">Phantom Ledger · Admin</div>
+    </div>
+    <div class="topbar-right">
+      <div class="admin-pill">⚙ Administrador</div>
+      <button class="logout-btn" onclick="logout()" title="Cerrar sesión">⏻</button>
+    </div>
+  </div>
+
+  <div class="user-chip">Sesión: <b id="adminChipName"></b> — control total habilitado</div>
+
+  <div class="admin-stats">
+    <div class="admin-stat">
+      <div class="admin-stat-label">Usuarios</div>
+      <div class="admin-stat-value" id="statUserCount">0</div>
+    </div>
+    <div class="admin-stat">
+      <div class="admin-stat-label">SOL en circulación</div>
+      <div class="admin-stat-value" id="statTotalSol">0</div>
+    </div>
+    <div class="admin-stat">
+      <div class="admin-stat-label">Transacciones</div>
+      <div class="admin-stat-value" id="statTotalTx">0</div>
+    </div>
+  </div>
+
+  <div class="section-head"><div class="section-title">Wallets de usuarios</div></div>
+  <div id="userCardsList"></div>
+
+  <div class="danger-zone">
+    <div class="danger-zone-title">Zona de riesgo</div>
+    <div class="danger-zone-sub">Estas acciones afectan a todos los usuarios de la demo y no se pueden deshacer.</div>
+    <button class="primary-btn danger" onclick="resetAllUsers()">Reiniciar todas las wallets</button>
+  </div>
+</div>
+
+<!-- ===== SEND MODAL ===== -->
+<div class="overlay" id="sendModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Enviar SOL</div>
+      <div class="modal-close" onclick="closeModal('sendModal')">✕</div>
+    </div>
+    <label class="field-label">Dirección o usuario de destino</label>
+    <input class="field" id="sendTo" placeholder="@usuario o dirección completa">
+    <div class="field-help">Podés pegar la dirección de la wallet o escribir el nombre de usuario.</div>
+    <label class="field-label">Monto</label>
+    <input class="field" id="sendAmount" type="number" placeholder="0.00" step="0.0001">
+    <div class="max-row">
+      <button class="max-btn" onclick="setMaxAmount()">Usar máximo</button>
+      <span class="avail-text" id="availLabel">Disponible: 0 SOL</span>
+    </div>
+    <button class="primary-btn" onclick="confirmSend()">Confirmar envío</button>
+  </div>
+</div>
+
+<!-- ===== RECEIVE MODAL ===== -->
+<div class="overlay" id="receiveModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Recibir SOL</div>
+      <div class="modal-close" onclick="closeModal('receiveModal')">✕</div>
+    </div>
+    <div class="qr-box"><svg viewBox="0 0 100 100" width="100%" height="100%" id="qrSvg"></svg></div>
+    <div class="receive-addr" id="fullAddrDisplay"></div>
+    <button class="primary-btn" onclick="copyAddress(true)">Copiar dirección</button>
+  </div>
+</div>
+
+<!-- ===== SWAP MODAL ===== -->
+<div class="overlay" id="swapModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Swap de tokens</div>
+      <div class="modal-close" onclick="closeModal('swapModal')">✕</div>
+    </div>
+    <label class="field-label">Desde</label>
+    <select class="field" id="swapFrom"></select>
+    <div class="swap-arrow"><div class="swap-arrow-btn" onclick="flipSwap()">⇅</div></div>
+    <label class="field-label">Hacia</label>
+    <select class="field" id="swapTo"></select>
+    <label class="field-label">Monto a intercambiar</label>
+    <input class="field" id="swapAmount" type="number" placeholder="0.00" step="0.0001">
+    <button class="primary-btn" onclick="confirmSwap()">Confirmar swap</button>
+  </div>
+</div>
+
+<!-- ===== ADMIN: EDIT BALANCE MODAL ===== -->
+<div class="overlay" id="editBalanceModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Editar balance</div>
+      <div class="modal-close" onclick="closeModal('editBalanceModal')">✕</div>
+    </div>
+    <label class="field-label">Usuario</label>
+    <input class="field" id="editBalUser" disabled>
+    <label class="field-label">Nuevo balance (SOL)</label>
+    <input class="field" id="editBalAmount" type="number" step="0.0001" placeholder="0.0000">
+    <button class="primary-btn amber" onclick="confirmEditBalance()">Guardar balance</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- SENDING OVERLAY -->
+<div class="sending-overlay" id="sendingOverlay">
+  <div class="sending-box">
+    <div class="sending-ring" id="sendingRing"></div>
+    <div class="sending-title" id="sendingTitle">Procesando transacción</div>
+    <div class="sending-sub" id="sendingSub">Confirmando en la red...</div>
+    <div class="sending-steps">
+      <div class="sending-step" id="step1"><div class="step-marker">1</div> Firmando transacción</div>
+      <div class="sending-step" id="step2"><div class="step-marker">2</div> Transmitiendo a la red</div>
+      <div class="sending-step" id="step3"><div class="step-marker">3</div> Esperando confirmación</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+/* ======================================================================
+   SUPABASE CONFIG
+   ====================================================================== */
+const SUPABASE_URL = 'https://kfaeqfldjivxhhdsknmf.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_XH-Pyr6CyhVvfDI4OgItig_UIECYe1s';
+const EMAIL_DOMAIN = '@walletdemo.local'; // dominio falso interno para usar username como login
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ======================================================================
+   STATE
+   ====================================================================== */
+let session = null;        // sesión activa de Supabase Auth
+let myWallet = null;       // fila de public.wallets del usuario logueado
+let myTokens = [];         // filas de public.tokens del usuario logueado
+let myTxs = [];            // filas de public.transactions (enviadas o recibidas)
+let currentFilter = 'all';
+let realtimeChannel = null;
+
+// Solo usado por el admin
+let allWallets = [];
+
+/* ======================================================================
+   UTIL
+   ====================================================================== */
+function shortAddr(a){ return a ? a.slice(0,4) + '...' + a.slice(-4) : '—'; }
+function isValidUsername(u){ return /^[a-zA-Z0-9_]{3,20}$/.test(u); }
+function usernameToEmail(u){ return u.toLowerCase() + EMAIL_DOMAIN; }
+
+function formatAmt(n){
+  n = Number(n);
+  if(n >= 1000000) return (n/1000000).toFixed(2)+'M';
+  if(n >= 1000) return n.toLocaleString('en-US',{maximumFractionDigits:2});
+  return n.toLocaleString('en-US',{maximumFractionDigits:4});
+}
+
+let toastTimer;
+function showToast(msg, isError){
+  const t = document.getElementById('toast');
+  t.textContent = (isError ? '⚠ ' : '✓ ') + msg;
+  t.style.borderColor = isError ? 'var(--red)' : 'var(--green)';
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> t.classList.remove('show'), 2400);
+}
+
+/* ======================================================================
+   AUTH UI
+   ====================================================================== */
+function switchAuthTab(tab){
+  document.getElementById('loginTab').classList.toggle('active', tab==='login');
+  document.getElementById('registerTab').classList.toggle('active', tab==='register');
+  document.getElementById('loginForm').classList.toggle('hidden', tab!=='login');
+  document.getElementById('registerForm').classList.toggle('hidden', tab!=='register');
+  hideAuthErrors();
+}
+function hideAuthErrors(){
+  document.getElementById('loginError').classList.remove('show');
+  document.getElementById('registerError').classList.remove('show');
+}
+function showAuthError(id, msg){
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.add('show');
+}
+function setBtnLoading(btn, loading, label){
+  if(loading){ btn.dataset.label = btn.textContent; btn.textContent = 'Procesando...'; btn.disabled = true; }
+  else{ btn.textContent = label || btn.dataset.label || btn.textContent; btn.disabled = false; }
+}
+
+/* ======================================================================
+   AUTH ACTIONS
+   ====================================================================== */
+async function doLogin(){
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  hideAuthErrors();
+  if(!u || !p){ showAuthError('loginError','Completá usuario y contraseña.'); return; }
+
+  const btn = event.target;
+  setBtnLoading(btn, true);
+
+  const { data, error } = await sb.auth.signInWithPassword({
+    email: usernameToEmail(u),
+    password: p
+  });
+
+  setBtnLoading(btn, false, 'Iniciar sesión');
+
+  if(error){
+    showAuthError('loginError', 'Usuario o contraseña incorrectos.');
+    return;
+  }
+  session = data.session;
+  await afterLogin();
+}
+
+async function doRegister(){
+  const u = document.getElementById('regUser').value.trim();
+  const p = document.getElementById('regPass').value;
+  hideAuthErrors();
+
+  if(!u || !p){ showAuthError('registerError','Completá usuario y contraseña.'); return; }
+  if(!isValidUsername(u)){ showAuthError('registerError','Usuario: 3-20 caracteres, solo letras, números y guión bajo.'); return; }
+  if(p.length < 6){ showAuthError('registerError','La contraseña debe tener al menos 6 caracteres.'); return; }
+
+  const btn = event.target;
+  setBtnLoading(btn, true);
+
+  const { data, error } = await sb.auth.signUp({
+    email: usernameToEmail(u),
+    password: p,
+    options: { data: { username: u, role: 'user' } }
+  });
+
+  setBtnLoading(btn, false, 'Crear cuenta');
+
+  if(error){
+    if(error.message && error.message.toLowerCase().includes('already')){
+      showAuthError('registerError','Ese usuario ya existe.');
+    } else {
+      showAuthError('registerError', 'No se pudo crear la cuenta: ' + error.message);
+    }
+    return;
+  }
+
+  session = data.session;
+  if(!session){
+    // Email confirmation podría estar activado en el proyecto
+    showAuthError('registerError','Cuenta creada. Si pide confirmación, revisá la config de Auth en Supabase (Confirm email).');
+    return;
+  }
+  showToast('Cuenta creada. ¡Bienvenido!');
+  await afterLogin();
+}
+
+async function logout(){
+  teardownRealtime();
+  await sb.auth.signOut();
+  session = null;
+  myWallet = null;
+  document.getElementById('userApp').classList.add('hidden');
+  document.getElementById('adminApp').classList.add('hidden');
+  document.getElementById('authScreen').classList.remove('hidden');
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+}
+
+/* ======================================================================
+   SESSION BOOTSTRAP
+   ====================================================================== */
+async function afterLogin(){
+  const { data: { user } } = await sb.auth.getUser();
+  if(!user){ showToast('No se pudo iniciar sesión', true); return; }
+
+  const { data: wallet, error } = await sb
+    .from('wallets')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
+  if(error || !wallet){
+    showToast('No se encontró tu wallet. Probá recargar en unos segundos.', true);
+    return;
+  }
+
+  myWallet = wallet;
+  document.getElementById('authScreen').classList.add('hidden');
+
+  if(myWallet.role === 'admin'){
+    document.getElementById('adminApp').classList.remove('hidden');
+    document.getElementById('adminChipName').textContent = myWallet.username;
+    await loadAdminData();
+  } else {
+    document.getElementById('userApp').classList.remove('hidden');
+    document.getElementById('userChipName').textContent = myWallet.username;
+    setFilter('all');
+    await loadUserData();
+  }
+
+  setupRealtime();
+}
+
+/* Resume session on page load */
+(async function init(){
+  const { data } = await sb.auth.getSession();
+  if(data.session){
+    session = data.session;
+    await afterLogin();
+  }
+})();
+
+/* ======================================================================
+   DATA LOADING — USER
+   ====================================================================== */
+async function loadUserData(){
+  const [{ data: tokens }, { data: txs }] = await Promise.all([
+    sb.from('tokens').select('*').eq('wallet_id', myWallet.id).order('symbol'),
+    sb.from('transactions')
+      .select('*')
+      .or(`from_wallet.eq.${myWallet.id},to_wallet.eq.${myWallet.id}`)
+      .order('created_at', { ascending:false })
+      .limit(50)
+  ]);
+
+  myTokens = tokens || [];
+  myTxs = await annotateTxs(txs || []);
+
+  renderUser();
+}
+
+// Convierte filas crudas de transactions en objetos listos para pintar,
+// resolviendo nombres de usuario de la otra punta de la transacción.
+async function annotateTxs(rows){
+  const walletIds = new Set();
+  rows.forEach(r => {
+    if(r.from_wallet) walletIds.add(r.from_wallet);
+    if(r.to_wallet) walletIds.add(r.to_wallet);
+  });
+  let nameMap = {};
+  if(walletIds.size){
+    const { data } = await sb.from('wallets').select('id,username,address').in('id', Array.from(walletIds));
+    (data || []).forEach(w => nameMap[w.id] = w);
+  }
+
+  return rows.map(r => {
+    const isOutgoing = r.from_wallet === myWallet.id;
+    const counterpartyId = isOutgoing ? r.to_wallet : r.from_wallet;
+    const counterparty = counterpartyId ? nameMap[counterpartyId] : null;
+
+    let type, title, sub, dir, amountStr;
+    if(r.type === 'swap'){
+      type = 'swap'; title = 'Swap ' + (r.note || ''); sub = 'Vía Jupiter Aggregator (simulado)';
+      dir = 'neutral'; amountStr = Number(r.amount).toFixed(2) + ' ' + r.symbol;
+    } else if(isOutgoing){
+      type = 'send'; title = r.symbol + ' enviado';
+      sub = counterparty ? ('A @' + counterparty.username + ' · ' + shortAddr(counterparty.address))
+                          : ('A ' + (r.external_address ? shortAddr(r.external_address) : 'externo'));
+      dir = 'down'; amountStr = '−' + Number(r.amount).toFixed(4) + ' ' + r.symbol;
+    } else {
+      type = 'recv'; title = r.symbol + ' recibido';
+      sub = counterparty ? ('De @' + counterparty.username + ' · ' + shortAddr(counterparty.address)) : 'Origen externo';
+      dir = 'up'; amountStr = '+' + Number(r.amount).toFixed(4) + ' ' + r.symbol;
+    }
+
+    return {
+      id: r.id, type, title, sub, dir, amount: amountStr,
+      status: r.status, time: timeAgo(r.created_at)
+    };
+  });
+}
+
+function timeAgo(iso){
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if(mins < 1) return 'Ahora';
+  if(mins < 60) return 'Hace ' + mins + ' min';
+  const hrs = Math.floor(mins/60);
+  if(hrs < 24) return 'Hace ' + hrs + ' h';
+  const days = Math.floor(hrs/24);
+  if(days === 1) return 'Ayer';
+  return 'Hace ' + days + ' días';
+}
+
+/* ======================================================================
+   RENDER — USER
+   ====================================================================== */
+function renderUser(){
+  document.getElementById('walletAddrShort').textContent = shortAddr(myWallet.address);
+  document.getElementById('fullAddrDisplay').textContent = myWallet.address;
+  document.getElementById('balanceSol').textContent = Number(myWallet.sol).toFixed(4);
+  const usd = myWallet.sol * myWallet.sol_price;
+  document.getElementById('balanceUsd').textContent = '$' + usd.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('availLabel').textContent = 'Disponible: ' + Number(myWallet.sol).toFixed(4) + ' SOL';
+
+  renderTokens();
+  renderTxs();
+  renderQr();
+  renderSwapOptions();
+}
+
+function renderTokens(){
+  const list = document.getElementById('tokenList');
+  list.innerHTML = '';
+
+  const solRow = document.createElement('div');
+  solRow.className = 'token-row';
+  solRow.innerHTML = `
+    <div class="token-icon" style="background:rgba(153,69,255,0.15); color:#9945FF;">◎</div>
+    <div class="token-info">
+      <div class="token-name">Solana</div>
+      <div class="token-sub">${Number(myWallet.sol).toFixed(4)} SOL</div>
+    </div>
+    <div class="token-amounts">
+      <div class="token-value">$${(myWallet.sol*myWallet.sol_price).toLocaleString('en-US',{maximumFractionDigits:2})}</div>
+      <div class="token-change up">+1.2%</div>
+    </div>`;
+  list.appendChild(solRow);
+
+  myTokens.filter(t => Number(t.amount) > 0).forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'token-row';
+    const value = t.amount * t.price;
+    const changeClass = t.change_pct >= 0 ? 'up' : 'down';
+    const changeSign = t.change_pct >= 0 ? '+' : '';
+    row.innerHTML = `
+      <div class="token-icon" style="background:${t.color}22; color:${t.color};">${t.icon}</div>
+      <div class="token-info">
+        <div class="token-name">${t.name}</div>
+        <div class="token-sub">${formatAmt(t.amount)} ${t.symbol}</div>
+      </div>
+      <div class="token-amounts">
+        <div class="token-value">$${value.toLocaleString('en-US',{maximumFractionDigits:2})}</div>
+        <div class="token-change ${changeClass}">${changeSign}${t.change_pct}%</div>
+      </div>`;
+    list.appendChild(row);
+  });
+}
+
+function renderTxs(){
+  const list = document.getElementById('txList');
+  list.innerHTML = '';
+  const filtered = myTxs.filter(tx => currentFilter==='all' ? true : tx.type===currentFilter);
+  if(filtered.length === 0) return;
+
+  filtered.forEach(tx => {
+    const row = document.createElement('div');
+    const isPending = tx.status === 'pending';
+    row.className = 'tx-row' + (isPending ? ' pending' : '');
+    const icon = tx.type === 'recv' ? '↓' : tx.type === 'send' ? '↑' : tx.type === 'admin' ? '⚙' : '⇄';
+    const amtClass = tx.dir === 'up' ? 'up' : tx.dir === 'down' ? 'down' : '';
+    const iconHtml = isPending ? '<div class="spinner-ring"></div>' : icon;
+    const iconClass = isPending ? 'tx-icon pending-icon' : `tx-icon ${tx.type}`;
+    const statusChip = isPending
+      ? `<span class="status-chip pend"><span class="status-dot-pend"></span> En proceso</span>`
+      : '';
+    row.innerHTML = `
+      <div class="${iconClass}">${iconHtml}</div>
+      <div class="tx-info">
+        <div class="tx-title">${tx.title}</div>
+        <div class="tx-sub">${tx.sub}</div>
+        ${statusChip}
+      </div>
+      <div class="tx-amounts">
+        <div class="tx-amt ${amtClass}">${tx.amount}</div>
+        <div class="tx-time">${tx.time}</div>
+      </div>`;
+    list.appendChild(row);
+  });
+}
+
+function setFilter(f){
+  currentFilter = f;
+  document.querySelectorAll('#userApp .tab').forEach(t => t.classList.toggle('active', t.dataset.filter===f));
+  if(myWallet && myWallet.role !== 'admin') renderTxs();
+}
+
+function renderQr(){
+  const svg = document.getElementById('qrSvg');
+  const size = 21;
+  const cell = 100/size;
+  let seed = 0;
+  for(let i=0;i<myWallet.address.length;i++) seed += myWallet.address.charCodeAt(i);
+  function rand(x,y){
+    const v = Math.sin(seed + x*12.9898 + y*78.233) * 43758.5453;
+    return (v - Math.floor(v));
+  }
+  let rects = '';
+  for(let y=0;y<size;y++){
+    for(let x=0;x<size;x++){
+      const isFinder = (x<7&&y<7) || (x>size-8&&y<7) || (x<7&&y>size-8);
+      if(isFinder) continue;
+      if(rand(x,y) > 0.55){
+        rects += `<rect x="${x*cell}" y="${y*cell}" width="${cell}" height="${cell}" fill="#0B0E13"/>`;
+      }
+    }
+  }
+  function finder(ox,oy){
+    return `
+      <rect x="${ox*cell}" y="${oy*cell}" width="${7*cell}" height="${7*cell}" fill="#0B0E13"/>
+      <rect x="${(ox+1)*cell}" y="${(oy+1)*cell}" width="${5*cell}" height="${5*cell}" fill="#fff"/>
+      <rect x="${(ox+2)*cell}" y="${(oy+2)*cell}" width="${3*cell}" height="${3*cell}" fill="#0B0E13"/>
+    `;
+  }
+  rects += finder(0,0) + finder(size-7,0) + finder(0,size-7);
+  svg.innerHTML = `<rect width="100" height="100" fill="#fff"/>` + rects;
+}
+
+function renderSwapOptions(){
+  const all = [{symbol:'SOL', name:'Solana'}, ...myTokens.map(t=>({symbol:t.symbol, name:t.name}))];
+  const fromSel = document.getElementById('swapFrom');
+  const toSel = document.getElementById('swapTo');
+  fromSel.innerHTML = all.map(t=>`<option value="${t.symbol}">${t.symbol} — ${t.name}</option>`).join('');
+  toSel.innerHTML = all.map(t=>`<option value="${t.symbol}">${t.symbol} — ${t.name}</option>`).join('');
+  toSel.selectedIndex = 1;
+}
+
+/* ======================================================================
+   MODALS
+   ====================================================================== */
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.overlay').forEach(ov=>{
+  ov.addEventListener('click', e=>{ if(e.target===ov) ov.classList.remove('show'); });
+});
+
+/* ======================================================================
+   USER ACTIONS
+   ====================================================================== */
+function copyAddress(fromReceive){
+  const text = myWallet.address;
+  const doFallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).catch(doFallback);
+  } else { doFallback(); }
+
+  if(!fromReceive){
+    const btn = document.getElementById('copyAddrBtn');
+    btn.classList.add('copied');
+    document.getElementById('copyIcon').textContent = '✓';
+    document.getElementById('copyLabel').textContent = 'Copiado';
+    setTimeout(()=>{
+      btn.classList.remove('copied');
+      document.getElementById('copyIcon').textContent = '⧉';
+      document.getElementById('copyLabel').textContent = 'Copiar';
+    }, 1600);
+  }
+  showToast('Dirección copiada al portapapeles');
+}
+
+function setMaxAmount(){
+  document.getElementById('sendAmount').value = Number(myWallet.sol).toFixed(4);
+}
+
+async function confirmSend(){
+  const to = document.getElementById('sendTo').value.trim();
+  const amt = parseFloat(document.getElementById('sendAmount').value);
+
+  if(!to){ showToast('Ingresá una dirección o usuario de destino', true); return; }
+  if(!amt || amt <= 0){ showToast('Ingresá un monto válido', true); return; }
+  if(amt > myWallet.sol){ showToast('Fondos insuficientes', true); return; }
+  if(to.toLowerCase() === myWallet.username.toLowerCase() || to === myWallet.address){
+    showToast('No podés enviarte SOL a vos mismo', true);
+    return;
+  }
+
+  closeModal('sendModal');
+  document.getElementById('sendAmount').value = '';
+
+  // Buscar destinatario por username o por dirección exacta
+  const { data: targets } = await sb
+    .from('wallets')
+    .select('id,username,address,sol')
+    .or(`username.ilike.${to},address.eq.${to}`)
+    .limit(1);
+
+  const target = targets && targets[0] ? targets[0] : null;
+
+  // 1) Insertamos la transacción en estado pending
+  const { data: txRow, error: txError } = await sb
+    .from('transactions')
+    .insert({
+      type: 'send',
+      from_wallet: myWallet.id,
+      to_wallet: target ? target.id : null,
+      external_address: target ? null : to,
+      amount: amt,
+      symbol: 'SOL',
+      status: 'pending'
+    })
+    .select()
+    .single();
+
+  if(txError){
+    showToast('No se pudo iniciar la transacción', true);
+    return;
+  }
+
+  // 2) Descontamos el saldo de inmediato (queda comprometido)
+  const newSol = Number(myWallet.sol) - amt;
+  await sb.from('wallets').update({ sol: newSol }).eq('id', myWallet.id);
+  myWallet.sol = newSol;
+
+  await loadUserData();
+  runSendingSequence(txRow.id, target, amt);
+}
+
+function runSendingSequence(txId, target, amt){
+  const overlay = document.getElementById('sendingOverlay');
+  const ring = document.getElementById('sendingRing');
+  const title = document.getElementById('sendingTitle');
+  const sub = document.getElementById('sendingSub');
+  const steps = [document.getElementById('step1'), document.getElementById('step2'), document.getElementById('step3')];
+
+  ring.className = 'sending-ring';
+  ring.textContent = '';
+  title.textContent = 'Procesando transacción';
+  sub.textContent = 'Confirmando en la red...';
+  steps.forEach(s => s.classList.remove('active','done'));
+  overlay.classList.add('show');
+
+  const timings = [600, 1300, 1500];
+  let i = 0;
+
+  function nextStep(){
+    if(i > 0) steps[i-1].classList.replace('active','done');
+    if(i < steps.length){
+      steps[i].classList.add('active');
+      i++;
+      setTimeout(nextStep, timings[i-1] || 1000);
+    } else {
+      finishSending();
+    }
+  }
+
+  async function finishSending(){
+    ring.className = 'sending-ring done';
+    ring.textContent = '✓';
+    title.textContent = 'Transacción confirmada';
+    sub.textContent = 'Tu transferencia se completó en la red (simulada)';
+
+    // Confirmar la tx
+    await sb.from('transactions').update({ status:'confirmed' }).eq('id', txId);
+
+    // Acreditar al destinatario si es un usuario real de la demo
+    if(target){
+      const { data: freshTarget } = await sb.from('wallets').select('sol').eq('id', target.id).single();
+      const newTargetSol = Number(freshTarget.sol) + amt;
+      await sb.from('wallets').update({ sol: newTargetSol }).eq('id', target.id);
+    }
+
+    await loadUserData();
+
+    setTimeout(() => {
+      overlay.classList.remove('show');
+      showToast('Transacción confirmada ✓');
+    }, 900);
+  }
+
+  setTimeout(nextStep, 200);
+}
+
+function flipSwap(){
+  const fromSel = document.getElementById('swapFrom');
+  const toSel = document.getElementById('swapTo');
+  const tmp = fromSel.value;
+  fromSel.value = toSel.value;
+  toSel.value = tmp;
+}
+
+async function confirmSwap(){
+  const from = document.getElementById('swapFrom').value;
+  const to = document.getElementById('swapTo').value;
+  const amt = parseFloat(document.getElementById('swapAmount').value);
+
+  if(!amt || amt<=0){ showToast('Ingresá un monto válido', true); return; }
+  if(from === to){ showToast('Elegí tokens diferentes', true); return; }
+
+  let fromPrice = 1;
+  if(from === 'SOL'){
+    if(amt > myWallet.sol){ showToast('Fondos insuficientes', true); return; }
+    const newSol = Number(myWallet.sol) - amt;
+    await sb.from('wallets').update({ sol: newSol }).eq('id', myWallet.id);
+    myWallet.sol = newSol;
+  } else {
+    const tok = myTokens.find(t=>t.symbol===from);
+    if(!tok || amt > tok.amount){ showToast('Fondos insuficientes', true); return; }
+    fromPrice = tok.price;
+    await sb.from('tokens').update({ amount: Number(tok.amount) - amt }).eq('id', tok.id);
+  }
+
+  if(to === 'SOL'){
+    const gained = amt * 0.98 * fromPrice / myWallet.sol_price;
+    const newSol = Number(myWallet.sol) + gained;
+    await sb.from('wallets').update({ sol: newSol }).eq('id', myWallet.id);
+  } else {
+    const tok = myTokens.find(t=>t.symbol===to);
+    if(tok){
+      await sb.from('tokens').update({ amount: Number(tok.amount) + amt * 0.98 }).eq('id', tok.id);
+    }
+  }
+
+  await sb.from('transactions').insert({
+    type:'swap', from_wallet: myWallet.id, to_wallet: null,
+    amount: amt, symbol: from, status:'confirmed', note: from + ' → ' + to
+  });
+
+  await loadUserData();
+  closeModal('swapModal');
+  document.getElementById('swapAmount').value = '';
+  showToast('Swap simulado ✓');
+}
+
+/* ======================================================================
+   ADMIN
+   ====================================================================== */
+async function loadAdminData(){
+  const { data: wallets } = await sb.from('wallets').select('*').order('created_at');
+  allWallets = wallets || [];
+
+  const ids = allWallets.map(w => w.id);
+  let txCounts = {};
+  if(ids.length){
+    const { data: txs } = await sb.from('transactions').select('id,from_wallet,to_wallet');
+    (txs || []).forEach(t => {
+      if(t.from_wallet) txCounts[t.from_wallet] = (txCounts[t.from_wallet]||0) + 1;
+      if(t.to_wallet) txCounts[t.to_wallet] = (txCounts[t.to_wallet]||0) + 1;
+    });
+  }
+  allWallets.forEach(w => w._txCount = txCounts[w.id] || 0);
+
+  renderAdmin();
+}
+
+function renderAdmin(){
+  const totalSol = allWallets.reduce((sum,w) => sum + Number(w.sol), 0);
+  const totalTx = allWallets.reduce((sum,w) => sum + w._txCount, 0) / 2; // cada tx cuenta para 2 wallets
+
+  document.getElementById('statUserCount').textContent = allWallets.length;
+  document.getElementById('statTotalSol').textContent = totalSol.toLocaleString('en-US',{maximumFractionDigits:1});
+  document.getElementById('statTotalTx').textContent = Math.round(totalTx);
+
+  const list = document.getElementById('userCardsList');
+  list.innerHTML = '';
+
+  if(allWallets.length === 0){
+    list.innerHTML = '<div class="admin-empty">Todavía no hay usuarios registrados.</div>';
+    return;
+  }
+
+  allWallets.forEach(w => {
+    const card = document.createElement('div');
+    card.className = 'user-card';
+    card.innerHTML = `
+      <div class="user-card-head">
+        <div class="user-card-id">
+          <div class="user-avatar">${w.username.charAt(0).toUpperCase()}</div>
+          <div>
+            <div class="user-card-name">@${w.username}</div>
+            <div class="user-card-addr">${shortAddr(w.address)}</div>
+          </div>
+        </div>
+        <div class="role-badge ${w.role}">${w.role === 'admin' ? 'Admin' : 'Usuario'}</div>
+      </div>
+      <div class="user-card-balance">${Number(w.sol).toFixed(4)} <span>SOL · ${w._txCount} tx</span></div>
+      <div class="user-card-actions">
+        <div class="mini-btn amber" onclick="openEditBalance('${w.id}')">✎ Balance</div>
+        <div class="mini-btn danger" onclick="adminClearHistory('${w.id}','${w.username}')">🗑 Historial</div>
+        <div class="mini-btn danger" onclick="adminResetUser('${w.id}','${w.username}')">↺ Reset</div>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+function openEditBalance(walletId){
+  const w = allWallets.find(x => x.id === walletId);
+  document.getElementById('editBalUser').value = '@' + w.username;
+  document.getElementById('editBalUser').dataset.walletId = walletId;
+  document.getElementById('editBalAmount').value = Number(w.sol).toFixed(4);
+  openModal('editBalanceModal');
+}
+
+async function confirmEditBalance(){
+  const walletId = document.getElementById('editBalUser').dataset.walletId;
+  const newAmt = parseFloat(document.getElementById('editBalAmount').value);
+  if(isNaN(newAmt) || newAmt < 0){ showToast('Ingresá un balance válido', true); return; }
+
+  const { error } = await sb.from('wallets').update({ sol: newAmt }).eq('id', walletId);
+  if(error){ showToast('No se pudo actualizar el balance', true); return; }
+
+  closeModal('editBalanceModal');
+  await loadAdminData();
+  showToast('Balance actualizado ✓');
+}
+
+async function adminClearHistory(walletId, username){
+  if(!confirm('¿Borrar el historial de @' + username + '? El balance no se modifica.')) return;
+  await sb.from('transactions').delete().or(`from_wallet.eq.${walletId},to_wallet.eq.${walletId}`);
+  await loadAdminData();
+  showToast('Historial de @' + username + ' borrado');
+}
+
+async function adminResetUser(walletId, username){
+  if(!confirm('¿Reiniciar por completo la wallet de @' + username + '?')) return;
+  const w = allWallets.find(x => x.id === walletId);
+  const isAdminUser = w.role === 'admin';
+
+  await sb.from('transactions').delete().or(`from_wallet.eq.${walletId},to_wallet.eq.${walletId}`);
+  await sb.from('wallets').update({ sol: isAdminUser ? 500 : 0 }).eq('id', walletId);
+  await sb.from('tokens').update({ amount: isAdminUser ? 250 : 0 }).eq('wallet_id', walletId).eq('symbol','USDC');
+  await sb.from('tokens').update({ amount: isAdminUser ? 120 : 0 }).eq('wallet_id', walletId).eq('symbol','JUP');
+  await sb.from('tokens').update({ amount: isAdminUser ? 950000 : 0 }).eq('wallet_id', walletId).eq('symbol','BONK');
+  await sb.from('tokens').update({ amount: isAdminUser ? 18.5 : 0 }).eq('wallet_id', walletId).eq('symbol','RAY');
+
+  await loadAdminData();
+  showToast('Wallet de @' + username + ' reiniciada');
+}
+
+async function resetAllUsers(){
+  if(!confirm('Esto reinicia TODAS las wallets de TODOS los usuarios. ¿Continuar?')) return;
+  for(const w of allWallets){
+    await adminResetUserSilent(w);
+  }
+  await loadAdminData();
+  showToast('Todas las wallets fueron reiniciadas');
+}
+async function adminResetUserSilent(w){
+  const isAdminUser = w.role === 'admin';
+  await sb.from('transactions').delete().or(`from_wallet.eq.${w.id},to_wallet.eq.${w.id}`);
+  await sb.from('wallets').update({ sol: isAdminUser ? 500 : 0 }).eq('id', w.id);
+  await sb.from('tokens').update({ amount: isAdminUser ? 250 : 0 }).eq('wallet_id', w.id).eq('symbol','USDC');
+  await sb.from('tokens').update({ amount: isAdminUser ? 120 : 0 }).eq('wallet_id', w.id).eq('symbol','JUP');
+  await sb.from('tokens').update({ amount: isAdminUser ? 950000 : 0 }).eq('wallet_id', w.id).eq('symbol','BONK');
+  await sb.from('tokens').update({ amount: isAdminUser ? 18.5 : 0 }).eq('wallet_id', w.id).eq('symbol','RAY');
+}
+
+/* ======================================================================
+   REALTIME
+   ====================================================================== */
+function setupRealtime(){
+  if(!myWallet) return;
+  teardownRealtime();
+
+  realtimeChannel = sb.channel('wallet-changes-' + myWallet.id);
+
+  if(myWallet.role === 'admin'){
+    realtimeChannel
+      .on('postgres_changes', { event:'*', schema:'public', table:'wallets' }, () => loadAdminData())
+      .on('postgres_changes', { event:'*', schema:'public', table:'transactions' }, () => loadAdminData());
+  } else {
+    realtimeChannel
+      .on('postgres_changes', { event:'UPDATE', schema:'public', table:'wallets', filter:`id=eq.${myWallet.id}` }, (payload) => {
+        myWallet = { ...myWallet, ...payload.new };
+        renderUser();
+      })
+      .on('postgres_changes', { event:'*', schema:'public', table:'transactions', filter:`to_wallet=eq.${myWallet.id}` }, () => {
+        loadUserData();
+        showToast('Nueva transacción recibida ✓');
+      })
+      .on('postgres_changes', { event:'*', schema:'public', table:'transactions', filter:`from_wallet=eq.${myWallet.id}` }, () => {
+        loadUserData();
+      })
+      .on('postgres_changes', { event:'*', schema:'public', table:'tokens', filter:`wallet_id=eq.${myWallet.id}` }, () => {
+        loadUserData();
+      });
+  }
+
+  realtimeChannel.subscribe();
+}
+
+function teardownRealtime(){
+  if(realtimeChannel){
+    sb.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
+}
+</script>
+
+</body>
+</html>
