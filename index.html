@@ -1565,45 +1565,12 @@ async function confirmSend(){
   closeModal('sendModal');
   document.getElementById('sendAmount').value = '';
 
-  // Buscar destinatario por username o por dirección exacta
-  const { data: targets } = await sb
-    .from('wallets')
-    .select('id,username,address,sol')
-    .or(`username.ilike.${to},address.eq.${to}`)
-    .limit(1);
-
-  const target = targets && targets[0] ? targets[0] : null;
-
-  // 1) Insertamos la transacción en estado pending
-  const { data: txRow, error: txError } = await sb
-    .from('transactions')
-    .insert({
-      type: 'send',
-      from_wallet: myWallet.id,
-      to_wallet: target ? target.id : null,
-      external_address: target ? null : to,
-      amount: amt,
-      symbol: 'SOL',
-      status: 'pending'
-    })
-    .select()
-    .single();
-
-  if(txError){
-    showToast('No se pudo iniciar la transacción', true);
-    return;
-  }
-
-  // 2) Descontamos el saldo de inmediato (queda comprometido)
-  const newSol = Number(myWallet.sol) - amt;
-  await sb.from('wallets').update({ sol: newSol }).eq('id', myWallet.id);
-  myWallet.sol = newSol;
-
-  await loadUserData();
-  runSendingSequence(txRow.id, target, amt);
+  // Mostramos la secuencia visual de "procesando" mientras la transferencia
+  // real ocurre en el servidor (vía función RPC atómica: resta + suma + tx).
+  runSendingSequence(to, amt);
 }
 
-function runSendingSequence(txId, target, amt){
+function runSendingSequence(to, amt){
   const overlay = document.getElementById('sendingOverlay');
   const ring = document.getElementById('sendingRing');
   const title = document.getElementById('sendingTitle');
@@ -1632,20 +1599,26 @@ function runSendingSequence(txId, target, amt){
   }
 
   async function finishSending(){
+    // La transferencia real ocurre acá, en el servidor, de forma atómica:
+    // resta al emisor, suma al destinatario (si existe) e inserta la
+    // transacción confirmada — todo en una sola operación segura.
+    const looksLikeAddress = to.length >= 32;
+    const { data, error } = await sb.rpc('transfer_sol', {
+      p_to_username: looksLikeAddress ? null : to,
+      p_to_address: looksLikeAddress ? to : null,
+      p_amount: amt
+    });
+
+    if(error){
+      overlay.classList.remove('show');
+      showToast(error.message || 'No se pudo completar la transacción', true);
+      return;
+    }
+
     ring.className = 'sending-ring done';
     ring.textContent = '✓';
     title.textContent = 'Transacción confirmada';
-    sub.textContent = 'Tu transferencia se completó en la red (simulada)';
-
-    // Confirmar la tx
-    await sb.from('transactions').update({ status:'confirmed' }).eq('id', txId);
-
-    // Acreditar al destinatario si es un usuario real de la demo
-    if(target){
-      const { data: freshTarget } = await sb.from('wallets').select('sol').eq('id', target.id).single();
-      const newTargetSol = Number(freshTarget.sol) + amt;
-      await sb.from('wallets').update({ sol: newTargetSol }).eq('id', target.id);
-    }
+    sub.textContent = 'Tu transferencia se completó en la red';
 
     await loadUserData();
 
