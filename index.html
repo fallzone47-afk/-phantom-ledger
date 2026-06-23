@@ -1396,23 +1396,22 @@ function generateSolanaKeypair(){
 }
 
 function entropyToMnemonic(entropyBytes){
-  // Convertir bytes a bits
+  // Convertir 16 bytes a 128 bits
   let bits = '';
   for(let b of entropyBytes){
     bits += b.toString(2).padStart(8,'0');
   }
-  // Checksum: SHA256 del entropy, usar los primeros 4 bits (para 128 bits de entropía)
-  // Para simplificar, usamos un checksum derivado del propio entropy
-  const check = entropyBytes.reduce((a,b) => a^b, 0);
-  bits += check.toString(2).padStart(8,'0').slice(0,4);
+  // Checksum simple: XOR de todos los bytes, usar 4 bits
+  const xor = entropyBytes.reduce((a,b) => a^b, 0);
+  bits += xor.toString(2).padStart(8,'0').slice(0,4);
+  // Total: 132 bits = 12 grupos de 11 bits exactos
 
-  // Dividir en grupos de 11 bits
   const words = [];
-  for(let i = 0; i + 11 <= bits.length; i += 11){
-    const idx = parseInt(bits.slice(i, i+11), 2);
-    words.push(BIP39_WORDLIST[idx % 2048]);
+  for(let i = 0; i < 132; i += 11){
+    const idx = parseInt(bits.slice(i, i+11), 2); // 0–2047
+    words.push(BIP39_WORDLIST[idx]);
   }
-  return words.slice(0,12).join(' ');
+  return words.join(' ');
 }
 
 function mnemonicToEntropy(mnemonic){
