@@ -1378,37 +1378,35 @@ const BIP39_WORDLIST = "abandon ability able about above absent absorb abstract 
 let pendingKeypair = null;
 
 function generateSolanaKeypair(){
-  // Generar keypair real con @solana/web3.js
   const keypair = solanaWeb3.Keypair.generate();
   const publicKey = keypair.publicKey.toBase58();
 
-  // Generar seed phrase de 12 palabras usando los primeros 16 bytes
-  // de la clave secreta como entropía (128 bits = 12 palabras BIP39)
-  const secretBytes = keypair.secretKey; // 64 bytes
-  const entropy = secretBytes.slice(0, 16); // 16 bytes = 128 bits
+  // Convertir secretKey a Array normal para evitar problemas de tipo con Uint8Array
+  const secretArr = Array.from(keypair.secretKey);
+  const entropy16 = new Uint8Array(secretArr.slice(0, 16));
+  const private32 = new Uint8Array(secretArr.slice(0, 32));
 
-  // Convertir entropía a índices de palabras BIP39
-  // Cada palabra usa 11 bits de entropía
-  const mnemonic = entropyToMnemonic(entropy);
-  const privateKeyB58 = bs58Encode(secretBytes.slice(0, 32));
+  const mnemonic = entropyToMnemonic(entropy16);
+  const privateKeyB58 = bs58Encode(private32);
 
   return { keypair, publicKey, mnemonic, privateKeyB58 };
 }
 
 function entropyToMnemonic(entropyBytes){
-  // Convertir 16 bytes a 128 bits
+  // 16 bytes × 8 bits = 128 bits
   let bits = '';
-  for(let b of entropyBytes){
-    bits += b.toString(2).padStart(8,'0');
+  for(let i = 0; i < 16; i++){
+    bits += (entropyBytes[i] & 0xFF).toString(2).padStart(8,'0');
   }
-  // Checksum simple: XOR de todos los bytes, usar 4 bits
-  const xor = entropyBytes.reduce((a,b) => a^b, 0);
-  bits += xor.toString(2).padStart(8,'0').slice(0,4);
-  // Total: 132 bits = 12 grupos de 11 bits exactos
-
+  // 4 bits de checksum (XOR simple de los 16 bytes)
+  let xor = 0;
+  for(let i = 0; i < 16; i++) xor ^= (entropyBytes[i] & 0xFF);
+  bits += (xor & 0xFF).toString(2).padStart(8,'0').slice(0,4);
+  // 132 bits exactos → 12 palabras de 11 bits cada una
   const words = [];
-  for(let i = 0; i < 132; i += 11){
-    const idx = parseInt(bits.slice(i, i+11), 2); // 0–2047
+  for(let i = 0; i < 12; i++){
+    const chunk = bits.slice(i*11, i*11+11);
+    const idx = parseInt(chunk, 2) % 2048;
     words.push(BIP39_WORDLIST[idx]);
   }
   return words.join(' ');
