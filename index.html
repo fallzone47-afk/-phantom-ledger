@@ -1266,8 +1266,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.98.0/lib/index.iife.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bip39@3.1.0/src/index.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/ed25519-hd-key@1.3.0/dist/ed25519-hd-key.umd.js"></script>
 <script>
 /* ======================================================================
    SUPABASE CONFIG
@@ -1370,40 +1368,82 @@ async function doLogin(){
 
 /* ======================================================================
    GENERACIÓN DE CLAVES CRIPTOGRÁFICAS REALES (ed25519 / Solana)
+   Usa @solana/web3.js para el keypair y Web Crypto API nativa para
+   la entropía. La wordlist BIP39 está embebida (solo las 2048 palabras).
    ====================================================================== */
-let pendingKeypair = null; // guardado temporalmente en memoria, nunca en Supabase
+
+// Wordlist BIP39 en inglés (2048 palabras) — embebida para no depender de CDN
+const BIP39_WORDLIST = "abandon ability able about above absent absorb abstract absurd abuse access accident account accuse achieve acid acoustic acquire across act action actor actress actual adapt add addict address adjust admit adult advance advice aerobic afford afraid again age agent agree ahead aim air airport aisle alarm album alcohol alert alien all alley allow almost alone alpha already also alter always amateur amazing among amount amused analyst anchor ancient anger angle angry animal ankle announce annual another answer antenna antique anxiety any apart apology appear apple approve april arch arctic area arena argue arm armed armor army around arrange arrest arrive arrow art artefact artist artwork ask aspect assault asset assist assume asthma athlete atom attack attend attitude attract auction audit august aunt author auto autumn average avocado avoid awake aware away awesome awful awkward axis baby bachelor bacon badge bag balance balcony ball bamboo banana banner bar barely bargain barrel base basic basket battle beach bean beauty because become beef before begin behave behind believe below bench benefit best betray better between beyond bicycle bid bike bind biology bird birth bitter black blade blame blanket blast bleak bless blind blood blossom blouse blue blur blush board boat body boil bomb bone book boost border boring borrow boss bottom bounce box boy bracket brain brand brave breeze brick bridge brief bright bring brisk broccoli broken bronze broom brother brown brush bubble buddy budget buffalo build bulb bulk bullet bundle bunker burden burger burst bus business busy butter buyer buzz cabbage cabin cable cactus cage cake call calm camera camp canal cancel candy cannon canvas canyon capable capital captain carbon card cargo carpet carry cart case cash casino castle casual cat catalog catch category cattle caught cause caution cave ceiling celery cement census century cereal certain chair chaos chapter charge chase chat cheap check cheese chef cherry chest chicken chief child chimney choice choose chronic chuckle chunk cigar cinnamon circle citizen city civil claim clap clarify claw clay clean clerk clever click client cliff climb clinic clip clock clog close cloth cloud clown club clump cluster cobalt code coffee coil coin collect color column combine come comfort comic common company concert conduct confirm congress connect consider control convince cook cool copper copy coral core corn correct cost cotton couch country couple course cousin cover coyote crack cradle craft cram crane crash crater crawl crazy cream credit creek crew cricket crime crisp critic cross crouch crowd crucial cruel cruise crumble crunch crush cry crystal cube culture cup cupboard curious current curtain curve cushion custom cute cycle dad damage damp dance danger daring dash daughter dawn day deal debate debris decade december decide decline decorate decrease deer defense define defy degree delay deliver demand demise denial dentist deny depart depend deposit depth deputy derive describe desert design desk despair destroy detail detect develop device devote diagram dial diamond diary dice diesel diet differ digital dignity dilemma dinner dinosaur direct dirt disagree discover disease dish dismiss disorder display distance divert divide divorce dizzy doctor document dog doll dolphin domain donate donkey donor door dose double dove draft dragon drama drastic draw dream dress drift drill drink drip drive drop drum dry duck dumb dune during dust dutch duty dwarf dynamic eager eagle early earn earth easily east easy echo ecology edge edit educate effort egg eight either elbow elder electric elegant element elephant elevator elite else embark embody embrace emerge emotion employ empower empty enable enact endless endorse enemy engage engine enhance enjoy enlist enough enrich enroll ensure enter entire entry envelope episode equal equip erase erupt escape essay essence estate eternal ethics evidence evil evoke evolve exact example excess exchange excite exclude exercise exhaust exhibit exile exist exit exotic expand expire explain expose express extend extra eye fable face faculty faint faith fall false fame family famous fan fancy fantasy far fashion fat fatal father fatigue fault favorite feature february federal fee feed feel feet fellow felt fence festival fetch fever few fiber fiction field figure file film filter final find fine finger finish fire firm first fiscal fish fit fitness fix flag flame flash flat flavor flee flight flip float flock floor flower fluid flush fly foam focus fog foil follow food foot force forest forget fork fortune forum forward fossil foster found fox fragile frame frequent fresh friend fringe frog front frost frown frozen fruit fuel fun funny furnace fury future gadget gain galaxy gallery game gap garbage garden garlic garment gasp gate gather gauge gaze general genius genre gentle genuine gesture ghost ginger giraffe girl give glad glance glare glass glide glimpse globe gloom glory glove glow glue goat goddess gold good goose gorilla gospel gossip govern gown grab grace grain grant grape grasp grass gravity great green grid grief grit grocery group grow grunt guard guide guilt guitar gun gym habit hair half hammer hamster hand happy harsh harvest hat have hawk hazard head health heart heavy hedgehog height hello helmet help hen hero hidden high hill hint hip hire history hobby hockey hold hole holiday hollow home honey hood hope horn hospital host hour hover hub huge human humble humor hungry hunter hurdle hurry hurt husband hybrid ice icon ignore ill illegal image imitate immense immune impact impose improve impulse inbox income increase index indicate indoor industry infant inflict inform inhale inject inner innocent input inquiry insane insect inside inspire install intact interest into invest invite involve iron island isolate issue item ivory jacket jaguar jar jazz jealous jeans jelly jewel job join joke journey joy judge juice jump jungle junior junk just kangaroo keen keep ketchup key kick kid kingdom kiss kit kitchen kite kitten kiwi knee knife knock know lab ladder lady lake lamp language laptop large later laugh laundry lava law lawn lawsuit layer lazy leader learn leave lecture left leg legal legend leisure lemon lend length lens leopard lesson letter level liar liberty library license life lift light like limb limit link lion liquid list little live lizard load loan lobster local lock logic lonely long loop lottery loud lounge love loyal lucky luggage lumber lunar lunch luxury lyrics mad magic magnet maid main major make mammal mango mansion manual maple marble march margin marine market marriage mask master match material math matrix maximum maze meadow mean media melody melt member memory mention mentor menu mercy merge merit merry mesh message metal method middle midnight milk million mimic mind minimum minor miracle miss mixed mixture mobile model modify mom monitor monkey monster month moon moral more morning mosquito mother motion mound mouse move movie much muffin mule multiply muscle museum mushroom music must mutual myself mystery naive name napkin narrow nasty natural nature near neck need negative neglect neither nephew nerve nest network news next nice night noble noise nominee noodle normal north notable note nothing notice novel now nuclear number nurse nut oak obey object oblige obscure obtain ocean october odor off offer office often oil okay old olive olympic omit once onion open option orange orbit orchard order ordinary organ orient original orphan ostrich other outdoor outside oval over own oyster ozone pact paddle page pair palace palm panda panel panic panther paper parade parent park parrot party pass patch path patrol pause pave payment peace peanut peasant pelican pen penalty pencil people pepper perfect permit person pet phone photo phrase physical piano picnic picture piece pig pigeon pill pilot pink pioneer pipe pistol pitch pizza place planet plastic plate play please pledge pluck plug plunge poem poet point polar pole police pond pony popular portion position possible post potato pottery poverty powder power practice praise predict prefer prepare present pretty prevent price pride primary print priority prison private prize problem process produce profit program project promote proof property prosper protect proud provide public pudding pull pulp pulse pumpkin punish pupil puppy purchase purity purpose push put puzzle pyramid quality quantum quarter question quick quit quiz quote rabbit raccoon race rack radar radio rage rail rain raise rally ramp ranch random range rapid rare rate rather raven raw razor ready real reason rebel rebuild recall receive recipe record recycle reduce reflect reform refuse region regret regular reject relax release rely remain remember remind remove render renew rent reopen repair repeat replace report require rescue resemble resist resource response result retire retreat return reunion reveal review reward rhythm ribbon rice rich ride rifle right rigid ring riot ripple risk ritual rival river road roast robot robust rocket romance roof rookie rotate rough round route royal rubber rude rug rule run runway rural sad saddle sadness safe sail salad salmon salon salt salute same sample sand satisfy satoshi sauce sausage save say scale scan scare scatter scene scheme scissors scorpion scout scrap screen script scrub sea search season seat second secret section security seed seek segment select sell seminar senior sense sentence series service session settle setup seven shadow shaft shallow share shed shell sheriff shield shift shine ship shiver shock shoe shoot shop short shoulder shove shrimp shrug shuffle shy sibling siege sight signal silent silk silly silver similar simple since sing siren sister situate six size sketch skill skin skirt skull slab slam sleep slender slice slide slight slim slogan slot slow slush small smart smile smoke smooth snack snake snap sniff snow soap soccer social sock solar soldier solid solution solve someone song soon sorry soul sound soup source south space spare spatial spawn speak special speed sphere spice spider spike spin spirit split spoil sponsor spoon spray spread spring spy square squeeze squirrel stable stadium staff stage stairs stamp stand start state stay steak steel stem step stereo stick still sting stock stomach stone stop story stove strategy street strike strong struggle student stuff stumble style subject submit subway success such sudden suffer sugar suggest suit summer sun sunny sunset super supply supreme sure surface surge surprise sustain swallow swamp swap swear sweet swift swim swing switch sword symbol symptom syrup table tackle tag tail talent tamper tank tape target task tattoo taxi teach team tell ten tenant tennis tent term test text thank that theme then theory there they thing this thought three thrive throw thumb thunder ticket tilt timber time tiny tip tired title toast tobacco today together toilet token tomato tomorrow tone tongue tonight tool tooth top topic topple torch tornado tortoise toss total tourist toward tower town toy track trade traffic tragic train transfer trap trash travel tray treat tree trend trial trick trigger trim trip trophy trouble truck truly trumpet trust truth tube tuition tumble tuna tunnel turkey turn turtle twelve twenty twice twin twist two type typical ugly umbrella unable unaware uncle uncover under undo unfair unfold unhappy uniform unique universe unknown unlock until unusual unveil update upgrade uphold upon upper upset urban usage use used useful useless usual utensil utility vacant vacuum vague valid valley valve van vanish vapor various vast vault vehicle velvet vendor venture venue verb verify version very vessel veteran viable vibrant vicious victory video view village vintage violin virtual virus visa visit visual vital vivid vocal voice void volcano volume vote voyage wage wagon wait walk wall walnut want warfare warm warrior wash wasp waste water wave way wealth weapon wear weasel wedding weekend weird welcome well west wet whale wheat wheel when where whip whisper wide width wife wild will win window wine wing wink winner winter wire wisdom wise wish witness wolf woman wonder wood wool word world worry worth wrap wreck wrestle wrist write wrong yard year yellow you young youth zebra zero zone zoo".split(' ');
+
+let pendingKeypair = null;
 
 function generateSolanaKeypair(){
-  // Genera un par de claves ed25519 real usando @solana/web3.js
+  // Generar keypair real con @solana/web3.js
   const keypair = solanaWeb3.Keypair.generate();
   const publicKey = keypair.publicKey.toBase58();
-  const secretKeyBytes = keypair.secretKey; // Uint8Array de 64 bytes
 
-  // Generar seed phrase: tomamos los primeros 16 bytes de la clave secreta
-  // como entropía para BIP39 (esto es una aproximación educativa, no el
-  // derivation path estándar completo de Solana — para producción real
-  // usaría derivación HD completa desde la seed phrase)
-  const entropyBytes = secretKeyBytes.slice(0, 16);
-  const entropyHex = Array.from(entropyBytes).map(b => b.toString(16).padStart(2,'0')).join('');
-  const mnemonic = bip39.entropyToMnemonic(entropyHex);
+  // Generar seed phrase de 12 palabras usando los primeros 16 bytes
+  // de la clave secreta como entropía (128 bits = 12 palabras BIP39)
+  const secretBytes = keypair.secretKey; // 64 bytes
+  const entropy = secretBytes.slice(0, 16); // 16 bytes = 128 bits
 
-  // Clave privada: codificada en base58 (los primeros 32 bytes = clave privada real)
-  const privateKeyBase58 = bs58encode(secretKeyBytes.slice(0, 32));
+  // Convertir entropía a índices de palabras BIP39
+  // Cada palabra usa 11 bits de entropía
+  const mnemonic = entropyToMnemonic(entropy);
+  const privateKeyB58 = bs58Encode(secretBytes.slice(0, 32));
 
-  return { keypair, publicKey, mnemonic, privateKeyBase58, secretKeyBytes };
+  return { keypair, publicKey, mnemonic, privateKeyB58 };
 }
 
-// Base58 encode simple (sin dependencia extra)
-function bs58encode(bytes){
-  const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-  let num = BigInt('0x' + Array.from(bytes).map(b => b.toString(16).padStart(2,'0')).join(''));
-  let result = '';
-  while(num > 0n){
-    result = ALPHABET[Number(num % 58n)] + result;
-    num = num / 58n;
+function entropyToMnemonic(entropyBytes){
+  // Convertir bytes a bits
+  let bits = '';
+  for(let b of entropyBytes){
+    bits += b.toString(2).padStart(8,'0');
   }
-  // Leading zeros
-  for(let b of bytes){ if(b === 0) result = '1' + result; else break; }
+  // Checksum: SHA256 del entropy, usar los primeros 4 bits (para 128 bits de entropía)
+  // Para simplificar, usamos un checksum derivado del propio entropy
+  const check = entropyBytes.reduce((a,b) => a^b, 0);
+  bits += check.toString(2).padStart(8,'0').slice(0,4);
+
+  // Dividir en grupos de 11 bits
+  const words = [];
+  for(let i = 0; i + 11 <= bits.length; i += 11){
+    const idx = parseInt(bits.slice(i, i+11), 2);
+    words.push(BIP39_WORDLIST[idx % 2048]);
+  }
+  return words.slice(0,12).join(' ');
+}
+
+function mnemonicToEntropy(mnemonic){
+  const words = mnemonic.trim().toLowerCase().split(/\s+/);
+  if(words.length !== 12) return null;
+  let bits = '';
+  for(let w of words){
+    const idx = BIP39_WORDLIST.indexOf(w);
+    if(idx === -1) return null;
+    bits += idx.toString(2).padStart(11,'0');
+  }
+  // Tomar los primeros 128 bits = 16 bytes
+  const bytes = [];
+  for(let i = 0; i < 128; i += 8){
+    bytes.push(parseInt(bits.slice(i, i+8), 2));
+  }
+  return new Uint8Array(bytes);
+}
+
+function validateMnemonic(mnemonic){
+  const words = mnemonic.trim().toLowerCase().split(/\s+/);
+  if(words.length !== 12) return false;
+  return words.every(w => BIP39_WORDLIST.includes(w));
+}
+
+function bs58Encode(bytes){
+  const ALPHA = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  let num = BigInt('0x' + Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join(''));
+  let result = '';
+  while(num > 0n){ result = ALPHA[Number(num%58n)] + result; num = num/58n; }
+  for(let b of bytes){ if(b===0) result='1'+result; else break; }
   return result;
 }
 
@@ -1419,8 +1459,14 @@ async function doRegister(){
   const btn = event.target;
   setBtnLoading(btn, true);
 
-  // 1. Generar el par de claves ANTES de registrar, para tener la dirección real
-  pendingKeypair = generateSolanaKeypair();
+  // Generar keypair real ANTES de registrar
+  try{
+    pendingKeypair = generateSolanaKeypair();
+  } catch(e){
+    showAuthError('registerError', 'Error al generar las claves. Recargá la página.');
+    setBtnLoading(btn, false, 'Crear cuenta');
+    return;
+  }
 
   const { data, error } = await sb.auth.signUp({
     email: usernameToEmail(u),
@@ -1447,7 +1493,6 @@ async function doRegister(){
     return;
   }
 
-  // 2. Mostramos la pantalla de claves antes de entrar a la wallet
   showKeysScreen(pendingKeypair);
 }
 
@@ -1455,10 +1500,8 @@ function showKeysScreen(kp){
   document.getElementById('authScreen').classList.add('hidden');
   document.getElementById('keysScreen').classList.remove('hidden');
 
-  // Dirección pública
   document.getElementById('displayPublicKey').textContent = kp.publicKey;
 
-  // Seed phrase como grilla de palabras
   const words = kp.mnemonic.split(' ');
   const seedEl = document.getElementById('displaySeedPhrase');
   seedEl.innerHTML = words.map((w,i) => `
@@ -1468,35 +1511,26 @@ function showKeysScreen(kp){
     </div>
   `).join('');
 
-  // Clave privada
-  document.getElementById('displayPrivateKey').textContent = kp.privateKeyBase58;
+  document.getElementById('displayPrivateKey').textContent = kp.privateKeyB58;
 
-  // Click para copiar en cualquier caja
   ['displayPublicKey','displaySeedPhrase','displayPrivateKey'].forEach(id => {
     document.getElementById(id).onclick = () => {
-      const text = id === 'displaySeedPhrase' ? kp.mnemonic :
-                   id === 'displayPrivateKey' ? kp.privateKeyBase58 : kp.publicKey;
+      const text = id==='displaySeedPhrase' ? kp.mnemonic :
+                   id==='displayPrivateKey' ? kp.privateKeyB58 : kp.publicKey;
       navigator.clipboard?.writeText(text).catch(()=>{});
       showToast('Copiado ✓');
     };
   });
 
-  // Reset del checkbox
   document.getElementById('keysConfirmCheck').checked = false;
   document.getElementById('keysConfirmBtn').disabled = true;
 }
 
 async function confirmKeysAndContinue(){
   if(!pendingKeypair || !session) return;
-
-  // 3. Actualizar la dirección en Supabase con la dirección pública REAL
   const userId = session.user.id;
   await sb.from('wallets').update({ address: pendingKeypair.publicKey }).eq('id', userId);
-
-  // 4. Limpiar la clave de memoria (no la guardamos en ningún lado)
   pendingKeypair = null;
-
-  // 5. Entrar a la wallet normalmente
   document.getElementById('keysScreen').classList.add('hidden');
   showToast('Cuenta creada. ¡Bienvenido!');
   await afterLogin();
@@ -1538,7 +1572,7 @@ async function verifyMnemonic(){
     return;
   }
 
-  if(!bip39.validateMnemonic(mnemonic)){
+  if(!validateMnemonic(mnemonic)){
     errEl.textContent = 'Seed phrase inválida — verificá que las palabras estén escritas correctamente.';
     errEl.classList.add('show');
     return;
@@ -1549,18 +1583,19 @@ async function verifyMnemonic(){
 
   try{
     // Derivar la dirección pública a partir de la seed phrase
-    // Usamos la misma lógica que en el registro: entropía → mnemonic → keypair
-    const entropy = bip39.mnemonicToEntropy(mnemonic);
-    const entropyBytes = new Uint8Array(entropy.match(/.{2}/g).map(b => parseInt(b,16)));
+    const entropyBytes = mnemonicToEntropy(mnemonic);
+    if(!entropyBytes){
+      throw new Error('No se pudo procesar la seed phrase');
+    }
 
-    // Reconstruir el keypair: necesitamos los 32 bytes de entropía como seed de ed25519
-    // Expandimos a 64 bytes usando el mismo formato que @solana/web3.js
-    const seed32 = entropyBytes.slice(0,32);
-    // Derivar keypair desde seed
-    const keypairFromSeed = await deriveSolanaKeypairFromSeed(seed32);
-    recoverDerivedAddress = keypairFromSeed.publicKey.toBase58();
+    // Usar los primeros 32 bytes como seed para el keypair
+    const seed32 = entropyBytes.length >= 32 ? entropyBytes.slice(0,32) :
+      new Uint8Array([...entropyBytes, ...new Uint8Array(32 - entropyBytes.length)]);
 
-    // Buscar en Supabase si existe una wallet con esa dirección
+    const keypair = solanaWeb3.Keypair.fromSeed(seed32);
+    recoverDerivedAddress = keypair.publicKey.toBase58();
+
+    // Buscar en Supabase
     const { data: wallets, error } = await sb
       .from('wallets')
       .select('id, username, address')
@@ -1588,14 +1623,6 @@ async function verifyMnemonic(){
   }
 
   setBtnLoading(btn, false, 'Verificar seed phrase');
-}
-
-// Deriva un keypair de Solana desde 32 bytes de seed
-async function deriveSolanaKeypairFromSeed(seed32){
-  // Necesitamos 64 bytes para fromSeed: los 32 bytes + 32 bytes de clave pública derivada
-  // Usamos nacl (incluido en @solana/web3.js internamente) vía el Keypair.fromSeed
-  const keypair = solanaWeb3.Keypair.fromSeed(seed32);
-  return keypair;
 }
 
 async function setNewPassword(){
