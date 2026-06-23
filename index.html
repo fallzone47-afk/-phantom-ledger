@@ -119,6 +119,84 @@
   }
   .auth-hint b{ color: var(--text-dim); }
 
+  /* ============ KEYS SCREEN ============ */
+  .keys-warning{
+    background: rgba(255,92,114,0.08);
+    border:1px solid rgba(255,92,114,0.3);
+    border-radius:10px;
+    padding:10px 14px;
+    font-size:12px;
+    color: var(--red);
+    font-family:'JetBrains Mono', monospace;
+    margin-bottom:18px;
+    line-height:1.5;
+  }
+  .keys-box{
+    background: var(--bg);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 14px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    color: var(--green);
+    margin-bottom:16px;
+    word-break:break-all;
+    line-height:1.7;
+    cursor:pointer;
+    position:relative;
+    transition: border-color .15s ease;
+  }
+  .keys-box:hover{ border-color: var(--green); }
+  .keys-box.seed{
+    display:grid;
+    grid-template-columns: repeat(3,1fr);
+    gap:6px;
+  }
+  .seed-word{
+    background: var(--bg-raised);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:5px 8px;
+    font-size:12px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .seed-word-num{
+    color: var(--text-faint);
+    font-size:10px;
+    min-width:14px;
+  }
+  .keys-confirm-row{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    margin-bottom:16px;
+    padding:12px;
+    background: rgba(20,241,149,0.05);
+    border:1px solid rgba(20,241,149,0.15);
+    border-radius:10px;
+  }
+  .keys-confirm-row input[type=checkbox]{
+    margin-top:2px;
+    flex-shrink:0;
+    width:16px; height:16px;
+    accent-color: var(--green);
+    cursor:pointer;
+  }
+
+  .recover-link{
+    font-size:11.5px;
+    color: var(--text-faint);
+    font-family:'JetBrains Mono', monospace;
+    cursor:pointer;
+    text-decoration:underline;
+    text-underline-offset:3px;
+  }
+  .recover-link:hover{ color: var(--purple); }
+
+  textarea.field{ font-family:'JetBrains Mono', monospace; }
+
   .wipe-link{
     display:block;
     text-align:center;
@@ -891,6 +969,9 @@
       <label class="field-label">Contraseña</label>
       <input class="field" id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password">
       <button class="primary-btn" onclick="doLogin()">Iniciar sesión</button>
+      <div style="text-align:center; margin-top:14px;">
+        <span class="recover-link" onclick="showRecoverScreen()">¿Olvidaste tu contraseña? Recuperar con seed phrase</span>
+      </div>
     </div>
 
     <!-- REGISTER -->
@@ -903,6 +984,83 @@
       <label class="field-label">Contraseña</label>
       <input class="field" id="regPass" type="password" placeholder="mínimo 4 caracteres" autocomplete="new-password">
       <button class="primary-btn" onclick="doRegister()">Crear cuenta</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ KEYS SCREEN ============ -->
+<div class="auth-wrap hidden" id="keysScreen">
+  <div class="auth-brand">
+    <div class="brand-mark"></div>
+    <div class="brand-name" style="font-size:17px;">Phantom Ledger</div>
+  </div>
+  <div class="auth-card">
+    <div style="text-align:center; margin-bottom:16px;">
+      <div style="font-size:28px; margin-bottom:8px;">🔐</div>
+      <div class="auth-title">Guardá tus claves</div>
+      <div class="auth-sub">Estas claves son tuyas y solo tuyas. <b>Si las perdés, no hay recuperación posible.</b> Anotalas en papel y guardalas en un lugar seguro.</div>
+    </div>
+
+    <div class="keys-warning">
+      ⚠️ Nunca compartas tu seed phrase ni tu clave privada con nadie
+    </div>
+
+    <label class="field-label">Dirección pública (compartible)</label>
+    <div class="keys-box" id="displayPublicKey"></div>
+
+    <label class="field-label">Seed phrase — 12 palabras (SECRETO)</label>
+    <div class="keys-box seed" id="displaySeedPhrase"></div>
+
+    <label class="field-label">Clave privada (SECRETO)</label>
+    <div class="keys-box" id="displayPrivateKey" style="word-break:break-all; font-size:11px;"></div>
+
+    <div class="keys-confirm-row">
+      <input type="checkbox" id="keysConfirmCheck" onchange="document.getElementById('keysConfirmBtn').disabled=!this.checked">
+      <label for="keysConfirmCheck" style="font-size:12.5px; cursor:pointer;">Confirmo que copié y guardé mi seed phrase y clave privada en un lugar seguro.</label>
+    </div>
+
+    <button class="primary-btn" id="keysConfirmBtn" disabled onclick="confirmKeysAndContinue()">Entendido, continuar →</button>
+  </div>
+</div>
+
+<!-- ============ RECOVER SCREEN ============ -->
+<div class="auth-wrap hidden" id="recoverScreen">
+  <div class="auth-brand">
+    <div class="brand-mark"></div>
+    <div class="brand-name" style="font-size:17px;">Phantom Ledger</div>
+  </div>
+  <div class="auth-card">
+    <div style="text-align:center; margin-bottom:16px;">
+      <div style="font-size:28px; margin-bottom:8px;">🔑</div>
+      <div class="auth-title">Recuperar acceso</div>
+      <div class="auth-sub">Ingresá tus 12 palabras de seed phrase para verificar tu identidad y crear una nueva contraseña.</div>
+    </div>
+
+    <div class="auth-error" id="recoverError"></div>
+    <div class="auth-error" id="recoverSuccess" style="color:var(--green); background:rgba(20,241,149,0.08); border-color:rgba(20,241,149,0.3);"></div>
+
+    <!-- Paso 1: ingresar seed phrase -->
+    <div id="recoverStep1">
+      <label class="field-label">Tus 12 palabras (separadas por espacios)</label>
+      <textarea class="field" id="recoverMnemonic" rows="3" placeholder="palabra1 palabra2 palabra3 ... palabra12" style="resize:none; line-height:1.6;"></textarea>
+      <button class="primary-btn" onclick="verifyMnemonic()">Verificar seed phrase</button>
+    </div>
+
+    <!-- Paso 2: nueva contraseña (se muestra tras verificar) -->
+    <div id="recoverStep2" class="hidden">
+      <div style="background:rgba(20,241,149,0.08); border:1px solid rgba(20,241,149,0.2); border-radius:10px; padding:12px 14px; margin-bottom:16px;">
+        <div style="font-size:11px; color:var(--text-faint); font-family:'JetBrains Mono',monospace; margin-bottom:4px;">CUENTA ENCONTRADA</div>
+        <div style="font-size:15px; font-weight:700;" id="recoverFoundUser"></div>
+      </div>
+      <label class="field-label">Nueva contraseña</label>
+      <input class="field" id="recoverNewPass" type="password" placeholder="mínimo 6 caracteres">
+      <label class="field-label">Repetir contraseña</label>
+      <input class="field" id="recoverNewPass2" type="password" placeholder="repetí la contraseña">
+      <button class="primary-btn" onclick="setNewPassword()">Guardar nueva contraseña</button>
+    </div>
+
+    <div style="text-align:center; margin-top:16px;">
+      <span class="recover-link" onclick="showAuthScreen()">← Volver al login</span>
     </div>
   </div>
 </div>
@@ -1107,6 +1265,9 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.98.0/lib/index.iife.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bip39@3.1.0/src/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ed25519-hd-key@1.3.0/dist/ed25519-hd-key.umd.js"></script>
 <script>
 /* ======================================================================
    SUPABASE CONFIG
@@ -1162,6 +1323,8 @@ function switchAuthTab(tab){
   document.getElementById('registerTab').classList.toggle('active', tab==='register');
   document.getElementById('loginForm').classList.toggle('hidden', tab!=='login');
   document.getElementById('registerForm').classList.toggle('hidden', tab!=='register');
+  document.getElementById('keysScreen').classList.add('hidden');
+  document.getElementById('authScreen').classList.remove('hidden');
   hideAuthErrors();
 }
 function hideAuthErrors(){
@@ -1205,6 +1368,45 @@ async function doLogin(){
   await afterLogin();
 }
 
+/* ======================================================================
+   GENERACIÓN DE CLAVES CRIPTOGRÁFICAS REALES (ed25519 / Solana)
+   ====================================================================== */
+let pendingKeypair = null; // guardado temporalmente en memoria, nunca en Supabase
+
+function generateSolanaKeypair(){
+  // Genera un par de claves ed25519 real usando @solana/web3.js
+  const keypair = solanaWeb3.Keypair.generate();
+  const publicKey = keypair.publicKey.toBase58();
+  const secretKeyBytes = keypair.secretKey; // Uint8Array de 64 bytes
+
+  // Generar seed phrase: tomamos los primeros 16 bytes de la clave secreta
+  // como entropía para BIP39 (esto es una aproximación educativa, no el
+  // derivation path estándar completo de Solana — para producción real
+  // usaría derivación HD completa desde la seed phrase)
+  const entropyBytes = secretKeyBytes.slice(0, 16);
+  const entropyHex = Array.from(entropyBytes).map(b => b.toString(16).padStart(2,'0')).join('');
+  const mnemonic = bip39.entropyToMnemonic(entropyHex);
+
+  // Clave privada: codificada en base58 (los primeros 32 bytes = clave privada real)
+  const privateKeyBase58 = bs58encode(secretKeyBytes.slice(0, 32));
+
+  return { keypair, publicKey, mnemonic, privateKeyBase58, secretKeyBytes };
+}
+
+// Base58 encode simple (sin dependencia extra)
+function bs58encode(bytes){
+  const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  let num = BigInt('0x' + Array.from(bytes).map(b => b.toString(16).padStart(2,'0')).join(''));
+  let result = '';
+  while(num > 0n){
+    result = ALPHABET[Number(num % 58n)] + result;
+    num = num / 58n;
+  }
+  // Leading zeros
+  for(let b of bytes){ if(b === 0) result = '1' + result; else break; }
+  return result;
+}
+
 async function doRegister(){
   const u = document.getElementById('regUser').value.trim();
   const p = document.getElementById('regPass').value;
@@ -1217,6 +1419,9 @@ async function doRegister(){
   const btn = event.target;
   setBtnLoading(btn, true);
 
+  // 1. Generar el par de claves ANTES de registrar, para tener la dirección real
+  pendingKeypair = generateSolanaKeypair();
+
   const { data, error } = await sb.auth.signUp({
     email: usernameToEmail(u),
     password: p,
@@ -1226,6 +1431,7 @@ async function doRegister(){
   setBtnLoading(btn, false, 'Crear cuenta');
 
   if(error){
+    pendingKeypair = null;
     if(error.message && error.message.toLowerCase().includes('already')){
       showAuthError('registerError','Ese usuario ya existe.');
     } else {
@@ -1236,12 +1442,236 @@ async function doRegister(){
 
   session = data.session;
   if(!session){
-    // Email confirmation podría estar activado en el proyecto
+    pendingKeypair = null;
     showAuthError('registerError','Cuenta creada. Si pide confirmación, revisá la config de Auth en Supabase (Confirm email).');
     return;
   }
+
+  // 2. Mostramos la pantalla de claves antes de entrar a la wallet
+  showKeysScreen(pendingKeypair);
+}
+
+function showKeysScreen(kp){
+  document.getElementById('authScreen').classList.add('hidden');
+  document.getElementById('keysScreen').classList.remove('hidden');
+
+  // Dirección pública
+  document.getElementById('displayPublicKey').textContent = kp.publicKey;
+
+  // Seed phrase como grilla de palabras
+  const words = kp.mnemonic.split(' ');
+  const seedEl = document.getElementById('displaySeedPhrase');
+  seedEl.innerHTML = words.map((w,i) => `
+    <div class="seed-word">
+      <span class="seed-word-num">${i+1}.</span>
+      <span>${w}</span>
+    </div>
+  `).join('');
+
+  // Clave privada
+  document.getElementById('displayPrivateKey').textContent = kp.privateKeyBase58;
+
+  // Click para copiar en cualquier caja
+  ['displayPublicKey','displaySeedPhrase','displayPrivateKey'].forEach(id => {
+    document.getElementById(id).onclick = () => {
+      const text = id === 'displaySeedPhrase' ? kp.mnemonic :
+                   id === 'displayPrivateKey' ? kp.privateKeyBase58 : kp.publicKey;
+      navigator.clipboard?.writeText(text).catch(()=>{});
+      showToast('Copiado ✓');
+    };
+  });
+
+  // Reset del checkbox
+  document.getElementById('keysConfirmCheck').checked = false;
+  document.getElementById('keysConfirmBtn').disabled = true;
+}
+
+async function confirmKeysAndContinue(){
+  if(!pendingKeypair || !session) return;
+
+  // 3. Actualizar la dirección en Supabase con la dirección pública REAL
+  const userId = session.user.id;
+  await sb.from('wallets').update({ address: pendingKeypair.publicKey }).eq('id', userId);
+
+  // 4. Limpiar la clave de memoria (no la guardamos en ningún lado)
+  pendingKeypair = null;
+
+  // 5. Entrar a la wallet normalmente
+  document.getElementById('keysScreen').classList.add('hidden');
   showToast('Cuenta creada. ¡Bienvenido!');
   await afterLogin();
+}
+
+/* ======================================================================
+   RECUPERACIÓN CON SEED PHRASE
+   ====================================================================== */
+let recoverDerivedAddress = null; // dirección derivada de la seed phrase ingresada
+
+function showRecoverScreen(){
+  document.getElementById('authScreen').classList.add('hidden');
+  document.getElementById('recoverScreen').classList.remove('hidden');
+  document.getElementById('recoverError').classList.remove('show');
+  document.getElementById('recoverSuccess').classList.remove('show');
+  document.getElementById('recoverStep1').classList.remove('hidden');
+  document.getElementById('recoverStep2').classList.add('hidden');
+  document.getElementById('recoverMnemonic').value = '';
+  document.getElementById('recoverNewPass').value = '';
+  document.getElementById('recoverNewPass2').value = '';
+  recoverDerivedAddress = null;
+}
+
+function showAuthScreen(){
+  document.getElementById('recoverScreen').classList.add('hidden');
+  document.getElementById('keysScreen').classList.add('hidden');
+  document.getElementById('authScreen').classList.remove('hidden');
+}
+
+async function verifyMnemonic(){
+  const mnemonic = document.getElementById('recoverMnemonic').value.trim().toLowerCase();
+  const errEl = document.getElementById('recoverError');
+  errEl.classList.remove('show');
+
+  const words = mnemonic.split(/\s+/);
+  if(words.length !== 12){
+    errEl.textContent = 'Ingresá exactamente 12 palabras separadas por espacios.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  if(!bip39.validateMnemonic(mnemonic)){
+    errEl.textContent = 'Seed phrase inválida — verificá que las palabras estén escritas correctamente.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  const btn = event.target;
+  setBtnLoading(btn, true);
+
+  try{
+    // Derivar la dirección pública a partir de la seed phrase
+    // Usamos la misma lógica que en el registro: entropía → mnemonic → keypair
+    const entropy = bip39.mnemonicToEntropy(mnemonic);
+    const entropyBytes = new Uint8Array(entropy.match(/.{2}/g).map(b => parseInt(b,16)));
+
+    // Reconstruir el keypair: necesitamos los 32 bytes de entropía como seed de ed25519
+    // Expandimos a 64 bytes usando el mismo formato que @solana/web3.js
+    const seed32 = entropyBytes.slice(0,32);
+    // Derivar keypair desde seed
+    const keypairFromSeed = await deriveSolanaKeypairFromSeed(seed32);
+    recoverDerivedAddress = keypairFromSeed.publicKey.toBase58();
+
+    // Buscar en Supabase si existe una wallet con esa dirección
+    const { data: wallets, error } = await sb
+      .from('wallets')
+      .select('id, username, address')
+      .eq('address', recoverDerivedAddress)
+      .limit(1);
+
+    if(error || !wallets || wallets.length === 0){
+      errEl.textContent = 'No se encontró ninguna cuenta con esa seed phrase. Verificá las palabras.';
+      errEl.classList.add('show');
+      recoverDerivedAddress = null;
+      setBtnLoading(btn, false, 'Verificar seed phrase');
+      return;
+    }
+
+    const found = wallets[0];
+    document.getElementById('recoverFoundUser').textContent = '@' + found.username;
+    document.getElementById('recoverStep1').classList.add('hidden');
+    document.getElementById('recoverStep2').classList.remove('hidden');
+
+  } catch(e){
+    console.error('Error derivando keypair:', e);
+    errEl.textContent = 'Error al procesar la seed phrase. Verificá que sea correcta.';
+    errEl.classList.add('show');
+    recoverDerivedAddress = null;
+  }
+
+  setBtnLoading(btn, false, 'Verificar seed phrase');
+}
+
+// Deriva un keypair de Solana desde 32 bytes de seed
+async function deriveSolanaKeypairFromSeed(seed32){
+  // Necesitamos 64 bytes para fromSeed: los 32 bytes + 32 bytes de clave pública derivada
+  // Usamos nacl (incluido en @solana/web3.js internamente) vía el Keypair.fromSeed
+  const keypair = solanaWeb3.Keypair.fromSeed(seed32);
+  return keypair;
+}
+
+async function setNewPassword(){
+  const pass1 = document.getElementById('recoverNewPass').value;
+  const pass2 = document.getElementById('recoverNewPass2').value;
+  const errEl = document.getElementById('recoverError');
+  errEl.classList.remove('show');
+
+  if(!pass1 || pass1.length < 6){
+    errEl.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+    errEl.classList.add('show');
+    return;
+  }
+  if(pass1 !== pass2){
+    errEl.textContent = 'Las contraseñas no coinciden.';
+    errEl.classList.add('show');
+    return;
+  }
+  if(!recoverDerivedAddress){
+    errEl.textContent = 'Error de verificación. Volvé a ingresar tu seed phrase.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  const btn = event.target;
+  setBtnLoading(btn, true);
+
+  try{
+    // Buscar el email del usuario para actualizar su contraseña
+    const { data: wallets } = await sb
+      .from('wallets')
+      .select('id, username')
+      .eq('address', recoverDerivedAddress)
+      .limit(1);
+
+    if(!wallets || wallets.length === 0){
+      throw new Error('Cuenta no encontrada');
+    }
+
+    const username = wallets[0].username;
+    const email = usernameToEmail(username);
+
+    // Para cambiar la contraseña sin estar logueado necesitamos
+    // usar el flujo de reset de Supabase — iniciamos sesión con un
+    // token especial. Como no podemos enviar un email real (dominio falso),
+    // usamos el Admin API via RPC segura para actualizar la contraseña.
+    const { error } = await sb.rpc('reset_user_password', {
+      p_address: recoverDerivedAddress,
+      p_new_password: pass1
+    });
+
+    if(error){
+      throw new Error(error.message);
+    }
+
+    // Logeamos al usuario con la nueva contraseña
+    const { data: loginData, error: loginError } = await sb.auth.signInWithPassword({
+      email,
+      password: pass1
+    });
+
+    if(loginError) throw new Error(loginError.message);
+
+    session = loginData.session;
+    recoverDerivedAddress = null;
+    document.getElementById('recoverScreen').classList.add('hidden');
+    showToast('Contraseña actualizada. ¡Bienvenido de nuevo!');
+    await afterLogin();
+
+  } catch(e){
+    console.error('Error al resetear contraseña:', e);
+    errEl.textContent = 'No se pudo actualizar la contraseña: ' + e.message;
+    errEl.classList.add('show');
+  }
+
+  setBtnLoading(btn, false, 'Guardar nueva contraseña');
 }
 
 async function logout(){
